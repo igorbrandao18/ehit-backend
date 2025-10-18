@@ -18,9 +18,13 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from .api_views import api_index
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # API Index
+    path('api/', api_index, name='api-index'),
     
     # APIs
     path('api/users/', include('apps.users.urls')),
