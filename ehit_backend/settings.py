@@ -150,6 +150,12 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Custom User Model
 AUTH_USER_MODEL = 'users.User'
 
+# Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',  # django-axes backend
+    'django.contrib.auth.backends.ModelBackend',  # default Django backend
+]
+
 # Redis Cache Configuration
 CACHES = {
     'default': {
@@ -230,7 +236,7 @@ AXES_CACHE = 'default'
 AXES_ENABLED = True
 AXES_FAILURE_LIMIT = 5  # 5 tentativas
 AXES_COOLOFF_TIME = 1  # 1 hora
-AXES_LOCKOUT_CALLABLE = 'axes.lockout.database_lockout'
+# AXES_LOCKOUT_CALLABLE = 'axes.lockout.database_lockout'  # Removed - not a valid callable
 AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html'
 AXES_LOCKOUT_URL = '/locked/'
 AXES_VERBOSE = True

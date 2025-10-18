@@ -84,10 +84,8 @@ jobs:
           
           # Wait for database
           echo '🗄️ Waiting for database...'
-          until docker-compose -f docker/prod/docker-compose.yml exec -T db pg_isready -U ehit_user; do
-            echo 'Database not ready, waiting...'
-            sleep 2
-          done
+          sleep 10
+          docker-compose -f docker/prod/docker-compose.yml exec -T db pg_isready -U ehit_user
           
           # Create migrations
           echo '📝 Creating migrations...'
