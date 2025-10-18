@@ -139,17 +139,27 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-    - name: 📤 Copy files to server
+    - name: 📤 Clone repository on server
       run: |
-        # Copy project files
-        rsync -avz --delete \
-          --exclude='.git' \
-          --exclude='venv' \
-          --exclude='__pycache__' \
-          --exclude='*.pyc' \
-          --exclude='.env' \
-          --exclude='.DS_Store' \
-          ./ root@165.227.180.118:/opt/ehit_backend/
+        echo "📥 Cloning repository on server..."
+        ssh root@165.227.180.118 "
+          # Remove existing directory
+          rm -rf /opt/ehit_backend
+          
+          # Clone fresh repository
+          git clone https://github.com/igorbrandao18/ehit-backend.git /opt/ehit_backend
+          
+          # Navigate to project directory
+          cd /opt/ehit_backend
+          
+          # Checkout main branch
+          git checkout main
+          
+          # Pull latest changes
+          git pull origin main
+          
+          echo '✅ Repository cloned successfully'
+        "
 
     - name: 🚀 Deploy to production
       run: |
@@ -168,25 +178,18 @@ jobs:
         # Login to GitHub Container Registry
         echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
         
-        # Stop existing melody-flow container
-        echo "🛑 Stopping existing melody-flow container..."
-        docker stop melody-flow-app || true
-        docker rm melody-flow-app || true
+        # Stop and remove ALL existing containers
+        echo "🛑 Stopping ALL existing containers..."
+        docker stop $(docker ps -aq) || true
+        docker rm $(docker ps -aq) || true
         
-        # Stop existing containers
-        echo "🛑 Stopping existing containers..."
-        docker-compose -f docker/prod/docker-compose.yml down || true
+        # Remove ALL images
+        echo "🧹 Removing ALL Docker images..."
+        docker rmi $(docker images -q) || true
         
-        # Remove old images
-        echo "🧹 Cleaning up old images..."
-        docker image prune -f
-        
-        # Pull latest image
-        echo "📥 Pulling latest image..."
-        docker pull ${FULL_IMAGE_NAME}
-        
-        # Tag image for local use
-        docker tag ${FULL_IMAGE_NAME} ehit_backend:latest
+        # Clean up everything
+        echo "🧹 Cleaning up Docker system..."
+        docker system prune -af --volumes || true
         
         # Create .env file for production
         echo "🔧 Creating production environment file..."
@@ -259,6 +262,10 @@ jobs:
           echo "Database is unavailable - sleeping"
           sleep 2
         done
+        
+        # Create new migrations
+        echo "📝 Creating new migrations..."
+        docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py makemigrations
         
         # Run migrations
         echo "🗄️ Running migrations..."
