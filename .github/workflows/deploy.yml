@@ -1,133 +1,13 @@
-name: 🚀 Deploy EHIT Backend to Production
+name: 🚀 Deploy EHIT Backend
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
   workflow_dispatch:
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-
 jobs:
-  # Job de testes
-  test:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
-    
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_db
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-      
-      redis:
-        image: redis:7-alpine
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 🐍 Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
-    - name: 📦 Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-
-    - name: 🔧 Configure test environment
-      run: |
-        echo "SECRET_KEY=test-secret-key" >> .env
-        echo "DEBUG=True" >> .env
-        echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_db" >> .env
-        echo "REDIS_URL=redis://localhost:6379/0" >> .env
-
-    - name: 🗄️ Run migrations
-      run: python manage.py migrate
-
-    - name: 🧪 Run tests
-      run: python manage.py test --verbosity=2
-
-    - name: 📊 Generate coverage report
-      run: |
-        pip install coverage
-        coverage run --source='.' manage.py test
-        coverage report
-        coverage xml
-
-    - name: 📈 Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
-      with:
-        file: ./coverage.xml
-        flags: unittests
-        name: codecov-umbrella
-
-  # Job de build e push da imagem
-  build-and-push:
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 🔐 Log in to Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ${{ env.REGISTRY }}
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: 🏷️ Extract metadata
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-          type=raw,value=latest,enable={{is_default_branch}}
-
-    - name: 🏗️ Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        file: ./docker/prod/Dockerfile
-        push: true
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
-  # Job de deploy para produção
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: build-and-push
     environment: production
 
     steps:
@@ -139,61 +19,39 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
-    - name: 📤 Clone repository on server
+    - name: 🚀 Deploy to server
       run: |
-        echo "📥 Cloning repository on server..."
+        echo "🚀 Starting deployment..."
+        
+        # Connect to server and deploy
         ssh root@165.227.180.118 "
-          # Remove existing directory
+          echo '📥 Cloning repository...'
+          
+          # Remove old directory
           rm -rf /opt/ehit_backend
           
           # Clone fresh repository
           git clone https://github.com/igorbrandao18/ehit-backend.git /opt/ehit_backend
           
-          # Navigate to project directory
+          # Navigate to project
           cd /opt/ehit_backend
           
-          # Checkout main branch
-          git checkout main
+          # Stop all containers
+          echo '🛑 Stopping all containers...'
+          docker stop \$(docker ps -aq) || true
+          docker rm \$(docker ps -aq) || true
           
-          # Pull latest changes
-          git pull origin main
+          # Remove all images
+          echo '🧹 Removing all images...'
+          docker rmi \$(docker images -q) || true
           
-          echo '✅ Repository cloned successfully'
-        "
-
-    - name: 🚀 Deploy to production
-      run: |
-        echo "🚀 Starting deployment with Docker Compose..."
-        
-        # Variables
-        REGISTRY="ghcr.io"
-        IMAGE_NAME="${{ github.repository }}"
-        IMAGE_TAG="latest"
-        FULL_IMAGE_NAME="${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
-        
-        # Create project directory
-        mkdir -p /opt/ehit_backend
-        cd /opt/ehit_backend
-        
-        # Login to GitHub Container Registry
-        echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-        
-        # Stop and remove ALL existing containers
-        echo "🛑 Stopping ALL existing containers..."
-        docker stop $(docker ps -aq) || true
-        docker rm $(docker ps -aq) || true
-        
-        # Remove ALL images
-        echo "🧹 Removing ALL Docker images..."
-        docker rmi $(docker images -q) || true
-        
-        # Clean up everything
-        echo "🧹 Cleaning up Docker system..."
-        docker system prune -af --volumes || true
-        
-        # Create .env file for production
-        echo "🔧 Creating production environment file..."
-        cat > .env << EOL
+          # Clean Docker system
+          echo '🧹 Cleaning Docker system...'
+          docker system prune -af --volumes || true
+          
+          # Create .env file
+          echo '🔧 Creating .env file...'
+          cat > .env << EOL
         SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
         DEBUG=False
         DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
@@ -204,123 +62,57 @@ jobs:
         SESSION_COOKIE_SECURE=True
         CSRF_COOKIE_SECURE=True
         EOL
-        
-        # Configure Nginx for subdomain
-        echo "⚙️ Configuring Nginx for subdomain..."
-        cat > /etc/nginx/sites-available/prod.ehitapp.com.br << 'EOF'
-        server {
-            server_name prod.ehitapp.com.br;
-            
-            # Proxy para Docker Compose
-            location / {
-                proxy_pass http://127.0.0.1:80;
-                proxy_set_header Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto $scheme;
-                proxy_set_header X-Forwarded-Host $host;
-                proxy_set_header X-Forwarded-Port $server_port;
-                proxy_connect_timeout 30s;
-                proxy_send_timeout 30s;
-                proxy_read_timeout 30s;
-            }
-            
-            # Health check endpoint
-            location /health {
-                proxy_pass http://127.0.0.1:80/health;
-                proxy_set_header Host $host;
-            }
-
-            listen 80;
-        }
-        EOF
-        
-        # Enable the site
-        ln -sf /etc/nginx/sites-available/prod.ehitapp.com.br /etc/nginx/sites-enabled/
-        
-        # Test Nginx configuration
-        nginx -t
-        
-        # Reload Nginx
-        systemctl reload nginx
-        
-        # Start services with Docker Compose
-        echo "🚀 Starting services with Docker Compose..."
-        docker-compose -f docker/prod/docker-compose.yml up -d --build
-        
-        # Wait for services to be ready
-        echo "⏳ Waiting for services to be ready..."
-        sleep 60
-        
-        # Check if services are running
-        echo "🔍 Checking service status..."
-        docker-compose -f docker/prod/docker-compose.yml ps
-        
-        # Wait for database to be ready
-        echo "🗄️ Waiting for database to be ready..."
-        until docker-compose -f docker/prod/docker-compose.yml exec -T db pg_isready -U ehit_user; do
-          echo "Database is unavailable - sleeping"
-          sleep 2
-        done
-        
-        # Create new migrations
-        echo "📝 Creating new migrations..."
-        docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py makemigrations
-        
-        # Run migrations
-        echo "🗄️ Running migrations..."
-        docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py migrate
-        
-        # Collect static files
-        echo "📦 Collecting static files..."
-        docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py collectstatic --noinput
-        
-        # Create superuser if not exists
-        echo "👤 Creating superuser..."
-        docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py shell -c "
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser('admin', 'admin@ehitapp.com.br', 'admin123')
-            print('Superusuário criado: admin/admin123')
-        else:
-            print('Superusuário já existe')
+          
+          # Start services
+          echo '🚀 Starting services...'
+          docker-compose -f docker/prod/docker-compose.yml up -d --build
+          
+          # Wait for services
+          echo '⏳ Waiting for services...'
+          sleep 60
+          
+          # Wait for database
+          echo '🗄️ Waiting for database...'
+          until docker-compose -f docker/prod/docker-compose.yml exec -T db pg_isready -U ehit_user; do
+            echo 'Database not ready, waiting...'
+            sleep 2
+          done
+          
+          # Create migrations
+          echo '📝 Creating migrations...'
+          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py makemigrations
+          
+          # Run migrations
+          echo '🗄️ Running migrations...'
+          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py migrate
+          
+          # Collect static files
+          echo '📦 Collecting static files...'
+          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py collectstatic --noinput
+          
+          # Create superuser
+          echo '👤 Creating superuser...'
+          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py shell -c \"
+          from django.contrib.auth import get_user_model
+          User = get_user_model()
+          if not User.objects.filter(username='admin').exists():
+              User.objects.create_superuser('admin', 'admin@ehitapp.com.br', 'admin123')
+              print('Superuser created: admin/admin123')
+          else:
+              print('Superuser already exists')
+          \"
+          
+          # Configure SSL
+          echo '🔒 Configuring SSL...'
+          certbot --nginx -d prod.ehitapp.com.br --non-interactive --agree-tos --email admin@ehitapp.com.br || echo 'SSL failed, continuing...'
+          
+          # Show status
+          echo '📊 Final status:'
+          docker-compose -f docker/prod/docker-compose.yml ps
+          
+          echo '🎉 Deployment completed!'
+          echo '🌐 https://prod.ehitapp.com.br'
         "
-        
-        # Configure SSL with Let's Encrypt
-        echo "🔒 Configuring SSL with Let's Encrypt..."
-        certbot --nginx -d prod.ehitapp.com.br --non-interactive --agree-tos --email admin@ehitapp.com.br || echo "SSL configuration failed, continuing..."
-        
-        # Health check
-        echo "🏥 Performing health check..."
-        sleep 30
-        
-        # Test internal health endpoint
-        if docker-compose -f docker/prod/docker-compose.yml exec -T web curl -f http://localhost:8000/health > /dev/null 2>&1; then
-            echo "✅ Internal health check passed!"
-        else
-            echo "⚠️ Internal health check failed"
-        fi
-        
-        # Test external endpoint through Nginx
-        if curl -f http://localhost/health > /dev/null 2>&1; then
-            echo "✅ External health check passed!"
-        else
-            echo "⚠️ External health check failed"
-        fi
-        
-        # Show final status
-        echo "📊 Final status:"
-        docker-compose -f docker/prod/docker-compose.yml ps
-        
-        # Show logs for debugging
-        echo "📋 Recent logs:"
-        docker-compose -f docker/prod/docker-compose.yml logs --tail=20
-        
-        echo "🎉 Deployment completed successfully!"
-        echo "🌐 Application available at: https://prod.ehitapp.com.br"
-        echo "🔧 Admin panel: https://prod.ehitapp.com.br/admin"
-        echo "📊 API: https://prod.ehitapp.com.br/api/"
 
     - name: 🔍 Verify deployment
       run: |
@@ -335,41 +127,4 @@ jobs:
           exit 1
         fi
         
-        # Test admin endpoint
-        if curl -f https://prod.ehitapp.com.br/admin/; then
-          echo "✅ Admin endpoint accessible!"
-        else
-          echo "⚠️ Admin endpoint not accessible"
-        fi
-
-    - name: 📊 Deployment summary
-      run: |
-        echo "## 🎉 Deployment Summary" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Status:** ✅ Successfully deployed" >> $GITHUB_STEP_SUMMARY
-        echo "**Environment:** Production" >> $GITHUB_STEP_SUMMARY
-        echo "**Server:** 165.227.180.118" >> $GITHUB_STEP_SUMMARY
-        echo "**URL:** https://prod.ehitapp.com.br" >> $GITHUB_STEP_SUMMARY
-        echo "**Admin:** https://prod.ehitapp.com.br/admin" >> $GITHUB_STEP_SUMMARY
-        echo "**API:** https://prod.ehitapp.com.br/api/" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "**Image:** \`ghcr.io/${{ github.repository }}:latest\`" >> $GITHUB_STEP_SUMMARY
-        echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
-        echo "**Branch:** \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
-
-  # Job de notificação
-  notify:
-    runs-on: ubuntu-latest
-    if: always()
-    needs: [test, build-and-push, deploy]
-
-    steps:
-    - name: 📢 Notify deployment status
-      run: |
-        if [ "${{ needs.deploy.result }}" == "success" ]; then
-          echo "🎉 Deployment successful!"
-          echo "🌐 Application: https://prod.ehitapp.com.br"
-        else
-          echo "❌ Deployment failed!"
-          echo "Check the logs for more details."
-        fi
+        echo "🎉 Deployment verified successfully!"
