@@ -46,10 +46,12 @@ INSTALLED_APPS = [
     'corsheaders',
     
     # Local apps
+    'ehit_backend.apps.EhitBackendConfig',
     'apps.users',
     'apps.artists',
     'apps.music',
     'apps.playlists',
+    'banners',
 ]
 
 MIDDLEWARE = [

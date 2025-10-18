@@ -1,0 +1,143 @@
+/* CSS personalizado para Django Admin - Layout padrão com largura total */
+body {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#container {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+#content {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 20px !important;
+}
+
+#content-main {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.colMS {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.colM {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.colSM {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Remove margens e padding padrão */
+.module {
+    margin: 0 0 20px 0 !important;
+}
+
+.module table {
+    width: 100% !important;
+}
+
+/* Ajusta o layout responsivo */
+@media (min-width: 768px) {
+    #content {
+        padding: 20px 40px !important;
+    }
+}
+
+/* Remove largura fixa dos elementos */
+.results {
+    width: 100% !important;
+}
+
+.paginator {
+    width: 100% !important;
+}
+
+/* Ajusta tabelas para ocupar toda a largura */
+table {
+    width: 100% !important;
+}
+
+/* Remove largura fixa do formulário */
+.form-row {
+    width: 100% !important;
+}
+
+/* Ajusta campos de formulário */
+input[type="text"], 
+input[type="email"], 
+input[type="password"], 
+textarea, 
+select {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Força largura total em todos os elementos principais */
+#header {
+    width: 100% !important;
+}
+
+#user-tools {
+    width: 100% !important;
+}
+
+#nav-global {
+    width: 100% !important;
+}
+
+/* Ajusta o grid do dashboard */
+.dashboard .module {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Remove largura fixa das colunas */
+.dashboard .colMS {
+    width: 100% !important;
+}
+
+.dashboard .colSM {
+    width: 100% !important;
+}
+
+/* Ajusta tabelas de resultados */
+.results table {
+    width: 100% !important;
+    table-layout: auto !important;
+}
+
+/* Remove largura fixa dos formulários */
+.form-row .field-box {
+    width: 100% !important;
+}
+
+/* Ajusta campos de busca */
+#searchbar {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+/* Remove largura fixa dos filtros */
+#changelist-filter {
+    width: 100% !important;
+}
+
+/* Ajusta o conteúdo principal */
+#changelist {
+    width: 100% !important;
+}
+
+#changelist-form {
+    width: 100% !important;
+}
