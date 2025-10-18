@@ -6,10 +6,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  deploy:
+  setup:
     runs-on: ubuntu-latest
     environment: production
-
     steps:
     - name: 📥 Checkout code
       uses: actions/checkout@v4
@@ -26,31 +25,78 @@ jobs:
         echo "  StrictHostKeyChecking no" >> ~/.ssh/config
         echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
-    - name: 🚀 Deploy to server
+  prepare:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: setup
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+    - name: 🔑 Configure SSH
       run: |
-        echo "🚀 Starting deployment..."
-        
-        # Connect to server and deploy
+        mkdir -p ~/.ssh
+        echo "Host 165.227.180.118" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+
+    - name: 📥 Clone Repository
+      run: |
+        echo "📥 Cloning repository..."
         ssh root@165.227.180.118 "
-          echo '📥 Cloning repository...'
-          
           # Remove old directory
           rm -rf /opt/ehit_backend
           
           # Clone fresh repository
           git clone https://github.com/igorbrandao18/ehit-backend.git /opt/ehit_backend
           
-          # Navigate to project
-          cd /opt/ehit_backend
-          
+          echo '✅ Repository cloned successfully!'
+        "
+
+  cleanup:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: prepare
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+    - name: 🔑 Configure SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "Host 165.227.180.118" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+
+    - name: 🛑 Stop Services
+      run: |
+        echo "🛑 Stopping services..."
+        ssh root@165.227.180.118 "
           # Stop system nginx to free ports 80/443
           echo '🛑 Stopping system nginx...'
           systemctl stop nginx || true
           
           # Stop only application containers (preserve database)
           echo '🛑 Stopping application containers...'
-          docker-compose -f docker/prod/docker-compose.yml down || true
+          docker-compose -f /opt/ehit_backend/docker/prod/docker-compose.yml down || true
           
+          echo '✅ Services stopped successfully!'
+        "
+
+    - name: 🧹 Clean Docker
+      run: |
+        echo "🧹 Cleaning Docker..."
+        ssh root@165.227.180.118 "
           # Remove only application images (preserve database data)
           echo '🧹 Removing application images...'
           docker rmi \$(docker images | grep -E '(ehit|web|nginx)' | awk '{print \$3}') || true
@@ -59,8 +105,35 @@ jobs:
           echo '🧹 Cleaning Docker system (preserving volumes)...'
           docker system prune -af || true
           
-          # Create .env file
-          echo '🔧 Creating .env file...'
+          echo '✅ Docker cleaned successfully!'
+        "
+
+  configure:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: cleanup
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+    - name: 🔑 Configure SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "Host 165.227.180.118" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+
+    - name: 🔧 Create Environment File
+      run: |
+        echo "🔧 Creating .env file..."
+        ssh root@165.227.180.118 "
+          cd /opt/ehit_backend
+          
           cat > .env << EOL
         SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
         DEBUG=False
@@ -74,10 +147,46 @@ jobs:
         CSRF_TRUSTED_ORIGINS=https://prod.ehitapp.com.br,http://prod.ehitapp.com.br
         EOL
           
+          echo '✅ Environment file created successfully!'
+        "
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: configure
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+    - name: 🔑 Configure SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "Host 165.227.180.118" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+
+    - name: 🚀 Start Services
+      run: |
+        echo "🚀 Starting services..."
+        ssh root@165.227.180.118 "
+          cd /opt/ehit_backend
+          
           # Start services
           echo '🚀 Starting services...'
           docker-compose -f docker/prod/docker-compose.yml up -d --build
           
+          echo '✅ Services started successfully!'
+        "
+
+    - name: ⏳ Wait for Services
+      run: |
+        echo "⏳ Waiting for services..."
+        ssh root@165.227.180.118 "
           # Wait for services
           echo '⏳ Waiting for services...'
           sleep 60
@@ -85,27 +194,84 @@ jobs:
           # Wait for database
           echo '🗄️ Waiting for database...'
           sleep 10
-          docker-compose -f docker/prod/docker-compose.yml exec -T db pg_isready -U ehit_user
+          docker-compose -f /opt/ehit_backend/docker/prod/docker-compose.yml exec -T db pg_isready -U ehit_user
           
-          # Create migrations
-          echo '📝 Creating migrations...'
+          echo '✅ Services are ready!'
+        "
+
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: deploy
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+    - name: 🔑 Configure SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "Host 165.227.180.118" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+
+    - name: 📝 Create Migrations
+      run: |
+        echo "📝 Creating migrations..."
+        ssh root@165.227.180.118 "
+          cd /opt/ehit_backend
           docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py makemigrations
-          
-          # Run migrations
-          echo '🗄️ Running migrations...'
+          echo '✅ Migrations created successfully!'
+        "
+
+    - name: 🗄️ Run Migrations
+      run: |
+        echo "🗄️ Running migrations..."
+        ssh root@165.227.180.118 "
+          cd /opt/ehit_backend
           docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py migrate
-          
-          # Collect static files
-          echo '📦 Collecting static files...'
+          echo '✅ Migrations completed successfully!'
+        "
+
+    - name: 📦 Collect Static Files
+      run: |
+        echo "📦 Collecting static files..."
+        ssh root@165.227.180.118 "
+          cd /opt/ehit_backend
           docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py collectstatic --noinput
-          
-          # Superuser already exists from previous deployment
-          echo '👤 Superuser already exists (preserved from previous deployment)'
-          
-          # Show status
-          echo '📊 Final status:'
+          echo '✅ Static files collected successfully!'
+        "
+
+  verify:
+    runs-on: ubuntu-latest
+    environment: production
+    needs: migrate
+    steps:
+    - name: 📥 Checkout code
+      uses: actions/checkout@v4
+
+    - name: 🔐 Setup SSH
+      uses: webfactory/ssh-agent@v0.9.0
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+
+    - name: 🔑 Configure SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "Host 165.227.180.118" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+
+    - name: 📊 Show Status
+      run: |
+        echo "📊 Final status..."
+        ssh root@165.227.180.118 "
+          cd /opt/ehit_backend
           docker-compose -f docker/prod/docker-compose.yml ps
-          
           echo '🎉 Deployment completed!'
           echo '🌐 http://prod.ehitapp.com.br'
         "
@@ -116,7 +282,7 @@ jobs:
         sleep 30
         
         # Test health endpoint
-        if curl -f https://prod.ehitapp.com.br/health; then
+        if curl -f http://prod.ehitapp.com.br/health; then
           echo "✅ Health check passed!"
         else
           echo "❌ Health check failed!"
