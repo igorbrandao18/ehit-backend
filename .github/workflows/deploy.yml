@@ -43,6 +43,10 @@ jobs:
           # Navigate to project
           cd /opt/ehit_backend
           
+          # Stop system nginx to free ports 80/443
+          echo '🛑 Stopping system nginx...'
+          systemctl stop nginx || true
+          
           # Stop only application containers (preserve database)
           echo '🛑 Stopping application containers...'
           docker-compose -f docker/prod/docker-compose.yml down || true
@@ -111,7 +115,14 @@ jobs:
           
           # Configure SSL
           echo '🔒 Configuring SSL...'
-          certbot --nginx -d prod.ehitapp.com.br --non-interactive --agree-tos --email admin@ehitapp.com.br || echo 'SSL failed, continuing...'
+          # Configure SSL with Let's Encrypt (using Docker nginx)
+          echo '🔒 Configuring SSL with Let's Encrypt...'
+          # Wait for nginx container to be ready
+          sleep 30
+          # Install certbot if not exists
+          apt-get update && apt-get install -y certbot python3-certbot-nginx || true
+          # Get certificate
+          certbot certonly --nginx -d prod.ehitapp.com.br --non-interactive --agree-tos --email admin@ehitapp.com.br || echo 'SSL configuration failed, continuing...'
           
           # Show status
           echo '📊 Final status:'
