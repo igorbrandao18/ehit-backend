@@ -77,22 +77,39 @@ def health_check(request):
         }
     
     # Verificar variáveis de ambiente críticas
-    critical_env_vars = ['SECRET_KEY', 'DATABASE_URL']
-    missing_vars = []
-    for var in critical_env_vars:
-        if not os.getenv(var):
-            missing_vars.append(var)
-    
-    if missing_vars:
+    try:
+        from django.conf import settings
+        missing_vars = []
+        
+        # Verificar SECRET_KEY através do Django settings
+        print(f"DEBUG: SECRET_KEY = {repr(settings.SECRET_KEY)}")
+        print(f"DEBUG: SECRET_KEY length = {len(settings.SECRET_KEY) if settings.SECRET_KEY else 0}")
+        if not settings.SECRET_KEY:
+            print("DEBUG: SECRET_KEY is missing or empty")
+            missing_vars.append('SECRET_KEY')
+        else:
+            print("DEBUG: SECRET_KEY is present")
+        
+        # Verificar DATABASE_URL através de variável de ambiente
+        if not os.getenv('DATABASE_URL'):
+            missing_vars.append('DATABASE_URL')
+        
+        if missing_vars:
+            health_status["services"]["environment"] = {
+                "status": "unhealthy",
+                "missing_variables": missing_vars
+            }
+            health_status["status"] = "unhealthy"
+        else:
+            health_status["services"]["environment"] = {
+                "status": "healthy"
+            }
+    except Exception as e:
         health_status["services"]["environment"] = {
             "status": "unhealthy",
-            "missing_variables": missing_vars
+            "error": str(e)
         }
         health_status["status"] = "unhealthy"
-    else:
-        health_status["services"]["environment"] = {
-            "status": "healthy"
-        }
     
     # Determinar status HTTP
     if health_status["status"] == "healthy":
