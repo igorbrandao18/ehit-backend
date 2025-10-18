@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ehit Backend</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #9b1b31;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .verse-container {
+            text-align: center;
+            color: white;
+            max-width: 800px;
+            padding: 40px;
+        }
+        
+        .verse {
+            font-size: 2.5rem;
+            font-style: italic;
+            line-height: 1.4;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .reference {
+            font-size: 1.5rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        @media (max-width: 768px) {
+            .verse {
+                font-size: 1.8rem;
+            }
+            
+            .reference {
+                font-size: 1.2rem;
+            }
+            
+            .verse-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="verse-container">
+        <div class="verse">
+            "Porque para Deus nada é impossível."
+        </div>
+        <div class="reference">
+            Lucas 1:37
+        </div>
+    </div>
+</body>
+</html>

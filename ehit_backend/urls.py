@@ -19,8 +19,15 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from .api_views import api_index
+from .views import home_view, api_info_view
 
 urlpatterns = [
+    # Home page
+    path('', home_view, name='home'),
+    
+    # API Info (JSON)
+    path('api-info/', api_info_view, name='api-info'),
+    
     path('admin/', admin.site.urls),
     
     # API Index
