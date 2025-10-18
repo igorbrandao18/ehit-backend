@@ -1,8 +1,8 @@
-# Docker Compose para produção - Configuração simplificada
+# Docker Compose para produção
 # Uso: docker-compose -f docker/prod/docker-compose.yml up -d --build
 
 services:
-  # Banco de dados PostgreSQL
+  # Banco de dados PostgreSQL para produção
   db:
     image: postgres:15-alpine
     container_name: ehit_postgres
@@ -32,20 +32,20 @@ services:
     restart: unless-stopped
 
   # Aplicação Django
-          web:
-            build:
-              context: ../..
-              dockerfile: docker/prod/Dockerfile
-            container_name: ehit_backend
-            command: >
-              sh -c "mkdir -p /app/logs &&
-                     python manage.py migrate &&
-                     python manage.py collectstatic --noinput &&
-                     gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
-            volumes:
-              - static_volume:/app/staticfiles
-              - media_volume:/app/media
-              - logs_volume:/app/logs
+  web:
+    build:
+      context: ../..
+      dockerfile: docker/prod/Dockerfile
+    container_name: ehit_backend
+    command: >
+      sh -c "mkdir -p /app/logs &&
+             python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - logs_volume:/app/logs
     ports:
       - "8000:8000"
     environment:
@@ -54,6 +54,10 @@ services:
       - DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
       - REDIS_URL=redis://redis:6379/0
       - ALLOWED_HOSTS=prod.ehitapp.com.br,165.227.180.118,localhost
+      - SECURE_SSL_REDIRECT=True
+      - SECURE_PROXY_SSL_HEADER=('HTTP_X_FORWARDED_PROTO', 'https')
+      - SESSION_COOKIE_SECURE=True
+      - CSRF_COOKIE_SECURE=True
     depends_on:
       - db
       - redis
@@ -61,7 +65,7 @@ services:
       - ehit_network
     restart: unless-stopped
 
-  # Nginx como proxy reverso
+  # Nginx como proxy reverso para produção
   nginx:
     image: nginx:alpine
     container_name: ehit_nginx
@@ -79,12 +83,12 @@ services:
       - ehit_network
     restart: unless-stopped
 
-        volumes:
-          postgres_data:
-          redis_data:
-          static_volume:
-          media_volume:
-          logs_volume:
+volumes:
+  postgres_data:
+  redis_data:
+  static_volume:
+  media_volume:
+  logs_volume:
 
 networks:
   ehit_network:
