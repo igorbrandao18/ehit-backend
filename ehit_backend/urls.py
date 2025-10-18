@@ -20,6 +20,10 @@ from django.conf import settings
 from django.conf.urls.static import static
 from .api_views import api_index
 from .views import home_view, api_info_view
+from .artist_views import (
+    artist_dashboard, artist_music_list, artist_music_create,
+    artist_music_edit, artist_music_delete, artist_albums, artist_stats
+)
 
 urlpatterns = [
     # Home page
@@ -32,6 +36,15 @@ urlpatterns = [
     
     # API Index
     path('api/', api_index, name='api-index'),
+    
+    # Artist Admin Area
+    path('artist/dashboard/', artist_dashboard, name='artist_dashboard'),
+    path('artist/music/', artist_music_list, name='artist_music_list'),
+    path('artist/music/create/', artist_music_create, name='artist_music_create'),
+    path('artist/music/<int:music_id>/edit/', artist_music_edit, name='artist_music_edit'),
+    path('artist/music/<int:music_id>/delete/', artist_music_delete, name='artist_music_delete'),
+    path('artist/albums/', artist_albums, name='artist_albums'),
+    path('artist/stats/', artist_stats, name='artist_stats'),
     
     # APIs
     path('api/users/', include('apps.users.urls')),

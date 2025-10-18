@@ -1,0 +1,31 @@
+# Gêneros musicais disponíveis na plataforma
+# Baseado nos gêneros mais populares do Sua Música
+
+GENRE_CHOICES = [
+    ('', 'Selecione um gênero'),
+    ('sertanejo', 'Sertanejo'),
+    ('funk', 'Funk'),
+    ('pop', 'Pop'),
+    ('rock', 'Rock'),
+    ('mpb', 'MPB'),
+    ('forro', 'Forró'),
+    ('pagode', 'Pagode'),
+    ('samba', 'Samba'),
+    ('axé', 'Axé'),
+    ('reggae', 'Reggae'),
+    ('rap', 'Rap/Hip Hop'),
+    ('eletronica', 'Eletrônica'),
+    ('gospel', 'Gospel'),
+    ('blues', 'Blues'),
+    ('jazz', 'Jazz'),
+    ('classica', 'Clássica'),
+    ('country', 'Country'),
+    ('latin', 'Latina'),
+    ('indie', 'Indie'),
+    ('alternativa', 'Alternativa'),
+    ('metal', 'Metal'),
+    ('punk', 'Punk'),
+    ('reggaeton', 'Reggaeton'),
+    ('trap', 'Trap'),
+    ('outros', 'Outros'),
+]

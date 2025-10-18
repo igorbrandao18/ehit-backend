@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from apps.artists.models import BaseModel, Artist
+from apps.constants import GENRE_CHOICES
 
 
 class Music(BaseModel):
@@ -29,6 +30,7 @@ class Music(BaseModel):
     )
     genre = models.CharField(
         max_length=100, 
+        choices=GENRE_CHOICES,
         blank=True, 
         null=True,
         verbose_name='Gênero Musical'
