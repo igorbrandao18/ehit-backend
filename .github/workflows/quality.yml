@@ -90,7 +90,7 @@ jobs:
       uses: actions/checkout@v4
 
     - name: 🏗️ Build Docker image
-      run: docker build -f Dockerfile.prod -t ehit-backend:test .
+      run: docker build -f docker/prod/Dockerfile -t ehit-backend:test .
 
     - name: 🔒 Scan Docker image with Trivy
       uses: aquasecurity/trivy-action@master
@@ -120,7 +120,7 @@ jobs:
         path: ./
         base: main
         head: HEAD
-        extra_args: --debug --only-verified
+        extra_args: --debug --only-verified --exclude-paths .env.example
 
   # Job de análise de performance
   performance-check:
