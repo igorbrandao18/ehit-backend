@@ -101,17 +101,8 @@ jobs:
           echo '📦 Collecting static files...'
           docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py collectstatic --noinput
           
-          # Create superuser
-          echo '👤 Creating superuser...'
-          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py shell -c "
-          from django.contrib.auth import get_user_model
-          User = get_user_model()
-          if not User.objects.filter(username='admin').exists():
-              User.objects.create_superuser('admin', 'admin@ehitapp.com.br', 'admin123')
-              print('Superuser created: admin/admin123')
-          else:
-              print('Superuser already exists')
-          "
+          # Superuser already exists from previous deployment
+          echo '👤 Superuser already exists (preserved from previous deployment)'
           
           # Configure SSL
           echo '🔒 Configuring SSL...'
