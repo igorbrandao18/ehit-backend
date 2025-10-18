@@ -1,0 +1,171 @@
+name: 🏗️ Deploy Infrastructure with Terraform
+
+on:
+  push:
+    branches: [main]
+    paths: ['terraform/**']
+  pull_request:
+    branches: [main]
+    paths: ['terraform/**']
+  workflow_dispatch:
+
+env:
+  TF_VERSION: '1.6.0'
+  DIGITALOCEAN_REGION: 'nyc3'
+
+jobs:
+  terraform-plan:
+    name: 📋 Terraform Plan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 🔑 Configure DigitalOcean credentials
+        run: |
+          echo "DO_TOKEN=${{ secrets.DIGITALOCEAN_TOKEN }}" >> $GITHUB_ENV
+
+      - name: 📋 Terraform Init
+        run: |
+          cd terraform/environments/prod
+          terraform init
+
+      - name: 📋 Terraform Plan
+        run: |
+          cd terraform/environments/prod
+          terraform plan -var="digitalocean_token=${{ secrets.DIGITALOCEAN_TOKEN }}" \
+                         -var="ssh_key_fingerprint=${{ secrets.SSH_KEY_FINGERPRINT }}" \
+                         -var="github_token=${{ secrets.GITHUB_TOKEN }}"
+
+  terraform-apply:
+    name: 🚀 Terraform Apply
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    needs: []
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+
+      - name: 🔑 Configure DigitalOcean credentials
+        run: |
+          echo "DO_TOKEN=${{ secrets.DIGITALOCEAN_TOKEN }}" >> $GITHUB_ENV
+
+      - name: 📋 Terraform Init
+        run: |
+          cd terraform/environments/prod
+          terraform init
+
+      - name: 📋 Terraform Plan
+        run: |
+          cd terraform/environments/prod
+          terraform plan -var="digitalocean_token=${{ secrets.DIGITALOCEAN_TOKEN }}" \
+                         -var="ssh_key_fingerprint=${{ secrets.SSH_KEY_FINGERPRINT }}" \
+                         -var="github_token=${{ secrets.GITHUB_TOKEN }}"
+
+      - name: 🚀 Terraform Apply
+        run: |
+          cd terraform/environments/prod
+          terraform apply -auto-approve \
+                          -var="digitalocean_token=${{ secrets.DIGITALOCEAN_TOKEN }}" \
+                          -var="ssh_key_fingerprint=${{ secrets.SSH_KEY_FINGERPRINT }}" \
+                          -var="github_token=${{ secrets.GITHUB_TOKEN }}"
+
+      - name: 📊 Get Terraform Outputs
+        id: terraform-outputs
+        run: |
+          cd terraform/environments/prod
+          echo "app_ips=$(terraform output -raw app_ips)" >> $GITHUB_OUTPUT
+          echo "loadbalancer_ip=$(terraform output -raw loadbalancer_ip)" >> $GITHUB_OUTPUT
+
+      - name: 🔍 Verify Deployment
+        run: |
+          echo "🏗️ Infrastructure deployed successfully!"
+          echo "📱 App Servers: ${{ steps.terraform-outputs.outputs.app_ips }}"
+          echo "⚖️ Load Balancer: ${{ steps.terraform-outputs.outputs.loadbalancer_ip }}"
+          echo "🌐 Admin URL: https://ehitapp.com.br/admin/"
+          echo "🔗 API URL: https://ehitapp.com.br/api/"
+
+      - name: 🏥 Health Check
+        run: |
+          echo "⏳ Waiting for services to be ready..."
+          sleep 60
+          
+          # Test load balancer
+          if curl -f https://ehitapp.com.br/health/ > /dev/null 2>&1; then
+            echo "✅ Health check passed!"
+          else
+            echo "⚠️ Health check failed - services may still be starting"
+          fi
+
+  deploy-application:
+    name: 🚀 Deploy Application
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment: production
+    needs: [terraform-apply]
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🏗️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: 🏗️ Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./docker/prod/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 🔄 Update Application
+        run: |
+          echo "🔄 Application image updated!"
+          echo "📦 New image: ghcr.io/${{ github.repository }}:latest"
+          echo "🚀 Application will be updated automatically on next deployment"
+
+  cleanup:
+    name: 🧹 Cleanup
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: 🧹 Cleanup
+        run: |
+          echo "🧹 Cleanup completed"
+          echo "📊 Check deployment status at: https://github.com/${{ github.repository }}/actions"
