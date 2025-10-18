@@ -102,23 +102,12 @@ jobs:
           # Superuser already exists from previous deployment
           echo '👤 Superuser already exists (preserved from previous deployment)'
           
-          # Configure SSL
-          echo '🔒 Configuring SSL...'
-          # Configure SSL with Let's Encrypt (using Docker nginx)
-          echo '🔒 Configuring SSL with Let's Encrypt...'
-          # Wait for nginx container to be ready
-          sleep 30
-          # Install certbot if not exists
-          apt-get update && apt-get install -y certbot python3-certbot-nginx || true
-          # Get certificate
-          certbot certonly --nginx -d prod.ehitapp.com.br --non-interactive --agree-tos --email admin@ehitapp.com.br || echo 'SSL configuration failed, continuing...'
-          
           # Show status
           echo '📊 Final status:'
           docker-compose -f docker/prod/docker-compose.yml ps
           
           echo '🎉 Deployment completed!'
-          echo '🌐 https://prod.ehitapp.com.br'
+          echo '🌐 http://prod.ehitapp.com.br'
         "
 
     - name: 🔍 Verify deployment
