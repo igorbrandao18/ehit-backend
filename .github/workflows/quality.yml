@@ -44,7 +44,7 @@ jobs:
       run: safety check --json --output safety-report.json || true
 
     - name: 📊 Upload security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports
         path: |
@@ -76,7 +76,7 @@ jobs:
         cat outdated-packages.json
 
     - name: 📊 Upload outdated packages report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: outdated-packages
         path: outdated-packages.json
@@ -188,7 +188,7 @@ jobs:
         echo "- Database queries optimized" >> performance-report.md
 
     - name: 📊 Upload performance report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: performance-report
         path: performance-report.md
