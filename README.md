@@ -1,137 +1,240 @@
-# README - ehit_backend
+# 🎵 Ehit Backend
 
-## 🚀 Projeto Django com Docker
+Backend completo do sistema Ehit - Plataforma de música inspirada no Sua Música, desenvolvida com Django, PostgreSQL, Redis e APIs REST.
 
-Este é um projeto Django configurado com Docker, PostgreSQL e Redis para cache.
+## 🚀 Tecnologias
 
-## 📋 Pré-requisitos
-
-- Docker
-- Docker Compose
-
-## 🛠️ Configuração
-
-1. **Clone o repositório e navegue até o diretório:**
-   ```bash
-   cd ehit_backend
-   ```
-
-2. **Copie o arquivo de variáveis de ambiente:**
-   ```bash
-   cp .env.example .env
-   ```
-
-3. **Edite o arquivo `.env` com suas configurações:**
-   ```bash
-   nano .env
-   ```
-
-4. **Execute o projeto com Docker Compose:**
-   ```bash
-   docker-compose up --build
-   ```
-
-## 🐳 Serviços Docker
-
-- **PostgreSQL**: Banco de dados principal (porta 5432)
-- **Redis**: Cache e broker para Celery (porta 6379)
-- **Django**: Aplicação web (porta 8000)
+- **Django 5.2.7** - Framework web Python
+- **PostgreSQL** - Banco de dados principal
+- **Redis** - Cache e sessões
+- **Django REST Framework** - APIs REST
+- **Docker & Docker Compose** - Containerização
+- **Celery** - Tarefas assíncronas
+- **Pillow** - Processamento de imagens
 
 ## 📁 Estrutura do Projeto
 
 ```
 ehit_backend/
-├── docker-compose.yml      # Configuração dos serviços Docker
-├── Dockerfile             # Imagem Docker para Django
-├── requirements.txt       # Dependências Python
-├── .env.example          # Exemplo de variáveis de ambiente
-├── .gitignore            # Arquivos ignorados pelo Git
-├── manage.py             # Script de gerenciamento Django
-└── ehit_backend/         # Diretório principal do projeto
-    ├── settings.py       # Configurações do Django
-    ├── urls.py          # Roteamento de URLs
-    ├── wsgi.py          # Configuração WSGI
-    └── asgi.py          # Configuração ASGI
+├── apps/
+│   ├── users/          # Sistema de usuários
+│   ├── artists/        # Gestão de artistas
+│   ├── music/          # Sistema de músicas
+│   └── playlists/      # Playlists e favoritos
+├── ehit_backend/       # Configurações Django
+├── docs/               # Documentação
+├── docker-compose.yml  # Serviços Docker
+├── requirements.txt    # Dependências Python
+└── manage.py          # Script de gerenciamento
 ```
 
-## 🔧 Comandos Úteis
+## 🛠️ Instalação
 
-### Desenvolvimento
+### 1. Clone o repositório
 ```bash
-# Subir os serviços
-docker-compose up
+git clone https://github.com/igorbrandao18/ehit-backend.git
+cd ehit-backend
+```
 
-# Subir em background
+### 2. Configure o ambiente
+```bash
+# Copie o arquivo de exemplo
+cp .env.example .env
+
+# Edite as variáveis no .env
+nano .env
+```
+
+### 3. Execute com Docker Compose
+```bash
+# Inicie os serviços (PostgreSQL + Redis)
 docker-compose up -d
 
-# Parar os serviços
-docker-compose down
+# Instale dependências Python
+pip install -r requirements.txt
 
-# Ver logs
-docker-compose logs -f
+# Execute migrações
+python manage.py migrate
 
-# Executar comandos Django
-docker-compose exec web python manage.py migrate
-docker-compose exec web python manage.py createsuperuser
-docker-compose exec web python manage.py collectstatic
+# Crie superusuário
+python manage.py createsuperuser
+
+# Execute os testes
+python manage.py test
+
+# Inicie o servidor
+python manage.py runserver
 ```
 
-### Banco de Dados
-```bash
-# Acessar PostgreSQL
-docker-compose exec db psql -U ehit_user -d ehit_db
+## 🌐 Acesso
 
-# Fazer backup
-docker-compose exec db pg_dump -U ehit_user ehit_db > backup.sql
-```
-
-### Redis
-```bash
-# Acessar Redis CLI
-docker-compose exec redis redis-cli
-
-# Monitorar Redis
-docker-compose exec redis redis-cli monitor
-```
-
-## 🌐 Acessos
-
-- **Django Admin**: http://localhost:8000/admin/
-- **API**: http://localhost:8000/api/
-- **PostgreSQL**: localhost:5432
+- **Admin Django**: http://localhost:8000/admin/
+- **APIs REST**: http://localhost:8000/api/
+- **PostgreSQL**: localhost:5433
 - **Redis**: localhost:6379
 
-## 📦 Tecnologias
+## 📊 APIs Disponíveis
 
-- **Django 5.2.7**: Framework web
-- **PostgreSQL 15**: Banco de dados
-- **Redis 7**: Cache e broker
-- **Django REST Framework**: API REST
-- **Celery**: Tarefas assíncronas
-- **Docker**: Containerização
+### 👤 Users API (`/api/users/`)
+- `GET /users/` - Lista usuários
+- `POST /users/create/` - Criar usuário
+- `POST /users/login/` - Login
+- `GET /users/profile/` - Meu perfil
+- `PUT /users/profile/update/` - Atualizar perfil
 
-## 🔒 Variáveis de Ambiente
+### 🎵 Artists API (`/api/artists/`)
+- `GET /artists/` - Lista artistas
+- `POST /artists/create/` - Criar artista
+- `GET /artists/{id}/` - Detalhes do artista
+- `POST /artists/{id}/follow/` - Seguir artista
+- `GET /artists/popular/` - Artistas populares
 
-Configure as seguintes variáveis no arquivo `.env`:
+### 🎶 Music API (`/api/music/`)
+- `GET /music/` - Lista músicas
+- `POST /music/create/` - Criar música
+- `POST /music/{id}/stream/` - Contar stream
+- `POST /music/{id}/like/` - Curtir música
+- `GET /music/trending/` - Músicas em alta
 
+### 📋 Playlists API (`/api/playlists/`)
+- `GET /playlists/` - Lista playlists
+- `POST /playlists/create/` - Criar playlist
+- `POST /playlists/{id}/add-music/` - Adicionar música
+- `GET /playlists/favorites/` - Meus favoritos
+- `GET /playlists/popular/` - Playlists populares
+
+## 🧪 Testes
+
+O projeto possui **60 testes automatizados** cobrindo todos os modelos:
+
+```bash
+# Executar todos os testes
+python manage.py test
+
+# Testes com verbosidade
+python manage.py test --verbosity=2
+
+# Testes específicos
+python manage.py test apps.users
+python manage.py test apps.users.tests.UserModelTest
+```
+
+**Cobertura:**
+- ✅ 12 testes - Users
+- ✅ 12 testes - Artists  
+- ✅ 12 testes - Music
+- ✅ 24 testes - Playlists
+
+## 📈 Funcionalidades
+
+### 🎯 Sistema de Usuários
+- Usuários customizados (listener, artist, venue, admin)
+- Sistema de verificação
+- Perfis completos com avatar e bio
+- Contadores de seguidores
+
+### 🎵 Gestão de Artistas
+- Perfis artísticos completos
+- Links sociais (Instagram, YouTube, etc.)
+- Estatísticas (streams, downloads, curtidas)
+- Sistema de verificação
+
+### 🎶 Sistema de Músicas
+- Upload de arquivos de áudio
+- Metadados completos (título, álbum, gênero)
+- Sistema de capas e letras
+- Contadores de reprodução
+- Músicas em destaque e trending
+
+### 📋 Playlists e Favoritos
+- Playlists personalizadas
+- Sistema de favoritos
+- Reordenação de músicas
+- Playlists públicas e privadas
+- Seguir playlists
+
+### ⚡ Performance
+- **Cache Redis** para dados frequentes
+- **Paginação** para listas grandes
+- **Filtros otimizados** com Django ORM
+- **Serializers eficientes**
+
+## 🔧 Configuração
+
+### Variáveis de Ambiente (.env)
 ```env
-SECRET_KEY=sua-chave-secreta-aqui
+SECRET_KEY=sua_chave_secreta
 DEBUG=True
 ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
-REDIS_URL=redis://redis:6379/0
+DATABASE_URL=postgresql://user:pass@localhost:5433/ehit_db
+REDIS_URL=redis://localhost:6379/1
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
 ```
+
+### Docker Compose
+```yaml
+services:
+  db:
+    image: postgres:15
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: ehit_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+```
+
+## 📚 Documentação
+
+- **[API.md](API.md)** - Documentação completa das APIs
+- **[TESTES.md](TESTES.md)** - Documentação dos testes
+- **[docs/rules.mdc](docs/rules.mdc)** - Padrões de desenvolvimento
 
 ## 🚀 Deploy
 
-Para produção, certifique-se de:
+### Produção
+```bash
+# Configurar variáveis de produção
+export DEBUG=False
+export DATABASE_URL=postgresql://user:pass@host:port/db
+export REDIS_URL=redis://host:port/db
 
-1. Alterar `DEBUG=False`
-2. Configurar `ALLOWED_HOSTS` adequadamente
-3. Usar uma `SECRET_KEY` segura
-4. Configurar SSL/TLS
-5. Usar um banco de dados externo se necessário
+# Instalar dependências
+pip install -r requirements.txt
 
-## 📝 Licença
+# Executar migrações
+python manage.py migrate
 
-Este projeto está sob a licença MIT.
+# Coletar arquivos estáticos
+python manage.py collectstatic
+
+# Iniciar com Gunicorn
+gunicorn ehit_backend.wsgi:application
+```
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch (`git checkout -b feature/nova-feature`)
+3. Commit suas mudanças (`git commit -m 'Add nova feature'`)
+4. Push para a branch (`git push origin feature/nova-feature`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+
+## 👨‍💻 Autor
+
+**Igor Brandão**
+- GitHub: [@igorbrandao18](https://github.com/igorbrandao18)
+
+---
+
+**🎵 Sistema Ehit - Backend completo e funcional!**
