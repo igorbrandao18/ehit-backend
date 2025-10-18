@@ -24,10 +24,14 @@ from .artist_views import (
     artist_dashboard, artist_music_list, artist_music_create,
     artist_music_edit, artist_music_delete, artist_albums, artist_stats
 )
+from .health_views import health_check
 
 urlpatterns = [
     # Home page
     path('', home_view, name='home'),
+    
+    # Health check endpoint
+    path('health/', health_check, name='health-check'),
     
     # API Info (JSON)
     path('api-info/', api_info_view, name='api-info'),
