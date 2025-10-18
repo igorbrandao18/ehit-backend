@@ -1,11 +1,18 @@
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from django.urls import reverse
+from django.shortcuts import render
+from rest_framework.decorators import api_view, renderer_classes, permission_classes
+from rest_framework.renderers import JSONRenderer, BrowsableAPIRenderer
+from rest_framework.response import Response
+from rest_framework.permissions import AllowAny
 
 
-@require_http_methods(["GET"])
+@api_view(['GET'])
+@renderer_classes([JSONRenderer, BrowsableAPIRenderer])
+@permission_classes([AllowAny])
 def api_index(request):
-    """Página inicial da API com todos os endpoints disponíveis"""
+    """Página inicial da API com interface interativa do DRF"""
     
     base_url = request.build_absolute_uri('/api/')
     
@@ -101,4 +108,4 @@ def api_index(request):
         }
     }
     
-    return JsonResponse(endpoints, json_dumps_params={'indent': 2})
+    return Response(endpoints)
