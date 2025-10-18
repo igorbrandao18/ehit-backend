@@ -43,18 +43,17 @@ jobs:
           # Navigate to project
           cd /opt/ehit_backend
           
-          # Stop all containers
-          echo '🛑 Stopping all containers...'
-          docker stop \$(docker ps -aq) || true
-          docker rm \$(docker ps -aq) || true
+          # Stop only application containers (preserve database)
+          echo '🛑 Stopping application containers...'
+          docker-compose -f docker/prod/docker-compose.yml down || true
           
-          # Remove all images
-          echo '🧹 Removing all images...'
-          docker rmi \$(docker images -q) || true
+          # Remove only application images (preserve database data)
+          echo '🧹 Removing application images...'
+          docker rmi \$(docker images | grep -E '(ehit|web|nginx)' | awk '{print \$3}') || true
           
-          # Clean Docker system
-          echo '🧹 Cleaning Docker system...'
-          docker system prune -af --volumes || true
+          # Clean Docker system but preserve volumes
+          echo '🧹 Cleaning Docker system (preserving volumes)...'
+          docker system prune -af || true
           
           # Create .env file
           echo '🔧 Creating .env file...'
