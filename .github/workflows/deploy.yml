@@ -103,7 +103,7 @@ jobs:
           
           # Create superuser
           echo '👤 Creating superuser...'
-          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py shell -c \"
+          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py shell -c "
           from django.contrib.auth import get_user_model
           User = get_user_model()
           if not User.objects.filter(username='admin').exists():
@@ -111,7 +111,7 @@ jobs:
               print('Superuser created: admin/admin123')
           else:
               print('Superuser already exists')
-          \"
+          "
           
           # Configure SSL
           echo '🔒 Configuring SSL...'
