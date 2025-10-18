@@ -48,9 +48,21 @@ class MusicCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Music
         fields = [
-            'artist', 'title', 'album', 'genre', 'duration',
+            'title', 'album', 'genre', 'duration',
             'file', 'cover', 'lyrics', 'release_date'
         ]
+    
+    def create(self, validated_data):
+        """Cria uma nova música associada ao artista atual"""
+        user = self.context['request'].user
+        # Assumir que o usuário é um artista
+        from apps.artists.models import Artist
+        try:
+            artist = Artist.objects.get(user=user)
+            validated_data['artist'] = artist
+        except Artist.DoesNotExist:
+            raise serializers.ValidationError("Usuário deve ser um artista para criar músicas.")
+        return super().create(validated_data)
     
     def validate_title(self, value):
         """Validação do título"""

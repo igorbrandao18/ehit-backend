@@ -38,6 +38,12 @@ class PlaylistCreateSerializer(serializers.ModelSerializer):
             'name', 'description', 'is_public', 'cover'
         ]
     
+    def create(self, validated_data):
+        """Cria uma nova playlist associada ao usuário atual"""
+        user = self.context['request'].user
+        validated_data['user'] = user
+        return super().create(validated_data)
+    
     def validate_name(self, value):
         """Validação do nome"""
         if len(value.strip()) < 2:

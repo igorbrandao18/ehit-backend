@@ -41,9 +41,20 @@ class ArtistCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Artist
         fields = [
-            'user', 'stage_name', 'real_name', 'bio', 'genre',
+            'stage_name', 'real_name', 'bio', 'genre',
             'location', 'website', 'social_links'
         ]
+    
+    def create(self, validated_data):
+        """Cria um novo artista associado ao usuário atual"""
+        user = self.context['request'].user
+        
+        # Verificar se o usuário já tem um artista
+        if hasattr(user, 'artist_profile'):
+            raise serializers.ValidationError("Usuário já possui um perfil de artista.")
+        
+        validated_data['user'] = user
+        return super().create(validated_data)
     
     def validate_stage_name(self, value):
         """Validação do nome artístico"""
