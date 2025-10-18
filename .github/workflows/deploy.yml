@@ -19,6 +19,13 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
 
+    - name: 🔑 Configure SSH
+      run: |
+        mkdir -p ~/.ssh
+        echo "Host 165.227.180.118" >> ~/.ssh/config
+        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
+        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+
     - name: 🚀 Deploy to server
       run: |
         echo "🚀 Starting deployment..."
