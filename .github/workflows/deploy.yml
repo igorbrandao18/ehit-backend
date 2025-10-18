@@ -64,10 +64,11 @@ jobs:
         DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
         REDIS_URL=redis://redis:6379/0
         ALLOWED_HOSTS=prod.ehitapp.com.br,165.227.180.118,localhost
-        SECURE_SSL_REDIRECT=True
+        SECURE_SSL_REDIRECT=False
         SECURE_PROXY_SSL_HEADER=('HTTP_X_FORWARDED_PROTO', 'https')
-        SESSION_COOKIE_SECURE=True
-        CSRF_COOKIE_SECURE=True
+        SESSION_COOKIE_SECURE=False
+        CSRF_COOKIE_SECURE=False
+        CSRF_TRUSTED_ORIGINS=https://prod.ehitapp.com.br,http://prod.ehitapp.com.br
         EOL
           
           # Start services
