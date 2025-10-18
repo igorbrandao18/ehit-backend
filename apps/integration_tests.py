@@ -139,7 +139,7 @@ class IntegrationAPITest(APITestCase):
             'stage_name': 'New Artist',
             'real_name': 'New Artist Real',
             'bio': 'New artist bio',
-            'genre': 'Pop',
+            'genre': 'pop',
             'location': 'New City'
         }
         
