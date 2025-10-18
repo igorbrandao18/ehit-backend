@@ -1,0 +1,680 @@
+---
+description: Regras e padrões de desenvolvimento backend baseados na análise do Sua Música
+globs: ["**/*.py", "**/*.json", "**/*.md", "**/*.yml", "**/*.yaml"]
+alwaysApply: true
+---
+
+# 🎵 Regras de Desenvolvimento Backend - Plataforma Musical
+
+## 📋 **Arquitetura Backend**
+
+### **1. Stack Tecnológico**
+- **Framework**: Django 5.2.7 + Django REST Framework
+- **Banco de Dados**: PostgreSQL 15 (produção) + SQLite (desenvolvimento)
+- **Cache**: Redis 7 para sessões e cache de dados
+- **Tarefas Assíncronas**: Celery + Redis como broker
+- **Servidor**: Gunicorn (produção) + WhiteNoise (arquivos estáticos)
+- **Containerização**: Docker + Docker Compose
+
+### **2. Estrutura de Projeto Django**
+```
+ehit_backend/
+├── manage.py
+├── requirements.txt
+├── docker-compose.yml
+├── Dockerfile
+├── .env
+├── ehit_backend/
+│   ├── settings.py
+│   ├── urls.py
+│   ├── wsgi.py
+│   └── asgi.py
+├── apps/
+│   ├── users/           # Sistema de usuários
+│   ├── artists/         # Gestão de artistas
+│   ├── music/           # Sistema de músicas
+│   ├── playlists/       # Playlists e favoritos
+│   ├── events/          # Sistema de eventos
+│   ├── analytics/       # Métricas e analytics
+│   └── notifications/    # Sistema de notificações
+└── docs/
+    └── rules.mdc
+```
+
+## 🎯 **Padrões de Models**
+
+### **3. Model Base**
+```python
+from django.db import models
+from django.contrib.auth.models import AbstractUser
+from django.utils import timezone
+
+class BaseModel(models.Model):
+    """Modelo base com campos comuns"""
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        abstract = True
+        ordering = ['-created_at']
+```
+
+### **4. Sistema de Usuários**
+```python
+class User(AbstractUser):
+    """Usuário customizado baseado no Sua Música"""
+    USER_TYPES = [
+        ('listener', 'Ouvinte'),
+        ('artist', 'Artista'),
+        ('venue', 'Casa de Show'),
+        ('admin', 'Administrador'),
+    ]
+    
+    user_type = models.CharField(max_length=20, choices=USER_TYPES, default='listener')
+    bio = models.TextField(blank=True, null=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
+    phone = models.CharField(max_length=20, blank=True, null=True)
+    birth_date = models.DateField(blank=True, null=True)
+    location = models.CharField(max_length=100, blank=True, null=True)
+    verified = models.BooleanField(default=False)
+    followers_count = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        verbose_name = 'Usuário'
+        verbose_name_plural = 'Usuários'
+    
+    def __str__(self):
+        return f"{self.username} ({self.get_user_type_display()})"
+```
+
+### **5. Sistema de Artistas**
+```python
+class Artist(BaseModel):
+    """Modelo para artistas baseado no Sua Música"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='artist_profile')
+    stage_name = models.CharField(max_length=200)
+    real_name = models.CharField(max_length=200, blank=True, null=True)
+    bio = models.TextField(blank=True, null=True)
+    genre = models.CharField(max_length=100, blank=True, null=True)
+    location = models.CharField(max_length=100, blank=True, null=True)
+    website = models.URLField(blank=True, null=True)
+    social_links = models.JSONField(default=dict, blank=True)
+    verified = models.BooleanField(default=False)
+    followers_count = models.PositiveIntegerField(default=0)
+    monthly_listeners = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        verbose_name = 'Artista'
+        verbose_name_plural = 'Artistas'
+        ordering = ['-followers_count', '-created_at']
+    
+    def __str__(self):
+        return self.stage_name
+    
+    def get_total_streams(self):
+        """Retorna total de streams de todas as músicas"""
+        return sum(music.streams_count for music in self.musics.all())
+```
+
+### **6. Sistema de Músicas**
+```python
+class Music(BaseModel):
+    """Modelo para músicas baseado no Sua Música"""
+    artist = models.ForeignKey(Artist, on_delete=models.CASCADE, related_name='musics')
+    title = models.CharField(max_length=200)
+    album = models.CharField(max_length=200, blank=True, null=True)
+    genre = models.CharField(max_length=100, blank=True, null=True)
+    duration = models.PositiveIntegerField(help_text="Duração em segundos")
+    file = models.FileField(upload_to='music/', help_text="Arquivo de áudio")
+    cover = models.ImageField(upload_to='covers/', blank=True, null=True)
+    lyrics = models.TextField(blank=True, null=True)
+    release_date = models.DateField(default=timezone.now)
+    streams_count = models.PositiveIntegerField(default=0)
+    downloads_count = models.PositiveIntegerField(default=0)
+    likes_count = models.PositiveIntegerField(default=0)
+    is_featured = models.BooleanField(default=False)
+    
+    class Meta:
+        verbose_name = 'Música'
+        verbose_name_plural = 'Músicas'
+        ordering = ['-streams_count', '-created_at']
+    
+    def __str__(self):
+        return f"{self.title} - {self.artist.stage_name}"
+    
+    def get_stream_url(self):
+        """Retorna URL para streaming"""
+        return f"/api/music/{self.id}/stream/"
+    
+    def get_download_url(self):
+        """Retorna URL para download"""
+        return f"/api/music/{self.id}/download/"
+```
+
+### **7. Sistema de Playlists**
+```python
+class Playlist(BaseModel):
+    """Modelo para playlists baseado no Sua Música"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='playlists')
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True, null=True)
+    is_public = models.BooleanField(default=True)
+    cover = models.ImageField(upload_to='playlist_covers/', blank=True, null=True)
+    musics = models.ManyToManyField(Music, through='PlaylistMusic', related_name='playlists')
+    followers_count = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        verbose_name = 'Playlist'
+        verbose_name_plural = 'Playlists'
+        ordering = ['-followers_count', '-created_at']
+    
+    def __str__(self):
+        return f"{self.name} - {self.user.username}"
+
+class PlaylistMusic(models.Model):
+    """Modelo intermediário para playlist-música"""
+    playlist = models.ForeignKey(Playlist, on_delete=models.CASCADE)
+    music = models.ForeignKey(Music, on_delete=models.CASCADE)
+    added_at = models.DateTimeField(auto_now_add=True)
+    order = models.PositiveIntegerField(default=0)
+    
+    class Meta:
+        unique_together = ['playlist', 'music']
+        ordering = ['order', '-added_at']
+```
+
+## 🔧 **Padrões de Serializers**
+
+### **8. Serializers Base**
+```python
+from rest_framework import serializers
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
+
+class UserSerializer(serializers.ModelSerializer):
+    """Serializer para usuários"""
+    user_type_display = serializers.CharField(source='get_user_type_display', read_only=True)
+    followers_count = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = User
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 
+                 'user_type', 'user_type_display', 'bio', 'avatar', 
+                 'verified', 'followers_count', 'date_joined']
+        read_only_fields = ['id', 'date_joined', 'followers_count']
+
+class ArtistSerializer(serializers.ModelSerializer):
+    """Serializer para artistas"""
+    user = UserSerializer(read_only=True)
+    total_streams = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Artist
+        fields = ['id', 'user', 'stage_name', 'real_name', 'bio', 'genre', 
+                 'location', 'website', 'social_links', 'verified', 
+                 'followers_count', 'monthly_listeners', 'total_streams', 
+                 'is_following', 'created_at']
+        read_only_fields = ['id', 'followers_count', 'monthly_listeners', 'created_at']
+    
+    def get_total_streams(self, obj):
+        return obj.get_total_streams()
+    
+    def get_is_following(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.user.followers.filter(id=request.user.id).exists()
+        return False
+
+class MusicSerializer(serializers.ModelSerializer):
+    """Serializer para músicas"""
+    artist = ArtistSerializer(read_only=True)
+    artist_id = serializers.IntegerField(write_only=True)
+    duration_formatted = serializers.SerializerMethodField()
+    stream_url = serializers.SerializerMethodField()
+    download_url = serializers.SerializerMethodField()
+    is_liked = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Music
+        fields = ['id', 'artist', 'artist_id', 'title', 'album', 'genre', 
+                 'duration', 'duration_formatted', 'file', 'cover', 'lyrics', 
+                 'release_date', 'streams_count', 'downloads_count', 
+                 'likes_count', 'is_featured', 'stream_url', 'download_url', 
+                 'is_liked', 'created_at']
+        read_only_fields = ['id', 'streams_count', 'downloads_count', 
+                           'likes_count', 'created_at']
+    
+    def get_duration_formatted(self, obj):
+        minutes, seconds = divmod(obj.duration, 60)
+        return f"{minutes}:{seconds:02d}"
+    
+    def get_stream_url(self, obj):
+        return obj.get_stream_url()
+    
+    def get_download_url(self, obj):
+        return obj.get_download_url()
+    
+    def get_is_liked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(id=request.user.id).exists()
+        return False
+```
+
+## 🚀 **Padrões de Views**
+
+### **9. Views Base**
+```python
+from rest_framework import generics, status, permissions
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.shortcuts import get_object_or_404
+from django.db.models import Q, Count, F
+from django.core.cache import cache
+from django_ratelimit.decorators import ratelimit
+
+class MusicListView(generics.ListAPIView):
+    """Lista de músicas com filtros"""
+    serializer_class = MusicSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        queryset = Music.objects.select_related('artist__user').filter(is_active=True)
+        
+        # Filtros
+        search = self.request.GET.get('search')
+        genre = self.request.GET.get('genre')
+        artist_id = self.request.GET.get('artist')
+        featured = self.request.GET.get('featured')
+        
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) | 
+                Q(artist__stage_name__icontains=search) |
+                Q(album__icontains=search)
+            )
+        
+        if genre:
+            queryset = queryset.filter(genre__icontains=genre)
+        
+        if artist_id:
+            queryset = queryset.filter(artist_id=artist_id)
+        
+        if featured == 'true':
+            queryset = queryset.filter(is_featured=True)
+        
+        return queryset.order_by('-streams_count', '-created_at')
+
+class MusicDetailView(generics.RetrieveAPIView):
+    """Detalhes de uma música"""
+    serializer_class = MusicSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        return Music.objects.select_related('artist__user').filter(is_active=True)
+    
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        
+        # Incrementar contador de streams
+        Music.objects.filter(id=instance.id).update(
+            streams_count=F('streams_count') + 1
+        )
+        
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+```
+
+### **10. Sistema de Cache**
+```python
+from django.core.cache import cache
+from django.db.models import Count
+
+def get_popular_artists():
+    """Busca artistas populares com cache"""
+    cache_key = 'popular_artists'
+    artists = cache.get(cache_key)
+    
+    if not artists:
+        artists = Artist.objects.filter(verified=True, is_active=True)\
+                              .annotate(
+                                  total_streams=Count('musics__streams_count'),
+                                  musics_count=Count('musics')
+                              )\
+                              .order_by('-followers_count', '-total_streams')[:20]
+        
+        # Cache por 1 hora
+        cache.set(cache_key, artists, 3600)
+    
+    return artists
+
+def get_trending_music():
+    """Busca músicas em alta com cache"""
+    cache_key = 'trending_music'
+    musics = cache.get(cache_key)
+    
+    if not musics:
+        # Músicas com mais streams nas últimas 24h
+        from django.utils import timezone
+        from datetime import timedelta
+        
+        yesterday = timezone.now() - timedelta(days=1)
+        musics = Music.objects.filter(
+            is_active=True,
+            created_at__gte=yesterday
+        ).order_by('-streams_count')[:50]
+        
+        # Cache por 30 minutos
+        cache.set(cache_key, musics, 1800)
+    
+    return musics
+```
+
+### **11. Sistema de Streaming**
+```python
+from django.http import FileResponse, Http404
+from django.views.decorators.cache import cache_control
+from django.utils.decorators import method_decorator
+
+@method_decorator(ratelimit(key='ip', rate='100/h', method='GET'), name='get')
+class MusicStreamView(APIView):
+    """View para streaming de música"""
+    permission_classes = [permissions.AllowAny]
+    
+    def get(self, request, music_id):
+        music = get_object_or_404(Music, id=music_id, is_active=True)
+        
+        if not music.file:
+            raise Http404("Arquivo de música não encontrado")
+        
+        # Incrementar contador de streams
+        Music.objects.filter(id=music_id).update(
+            streams_count=F('streams_count') + 1
+        )
+        
+        # Log da reprodução
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Music streamed: {music.title} by {music.artist.stage_name}")
+        
+        # Retornar arquivo com headers apropriados
+        response = FileResponse(
+            music.file,
+            content_type='audio/mpeg',
+            as_attachment=False
+        )
+        
+        # Headers para streaming
+        response['Accept-Ranges'] = 'bytes'
+        response['Content-Length'] = music.file.size
+        
+        return response
+```
+
+## 🔒 **Sistema de Autenticação**
+
+### **12. JWT Authentication**
+```python
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Serializer customizado para JWT"""
+    
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        
+        # Adicionar claims customizados
+        token['user_type'] = user.user_type
+        token['verified'] = user.verified
+        token['username'] = user.username
+        
+        return token
+    
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        
+        # Adicionar dados do usuário na resposta
+        data['user'] = UserSerializer(self.user).data
+        
+        return data
+
+class LoginView(TokenObtainPairView):
+    """View de login customizada"""
+    serializer_class = CustomTokenObtainPairSerializer
+
+class RegisterView(APIView):
+    """View de registro"""
+    permission_classes = [permissions.AllowAny]
+    
+    def post(self, request):
+        serializer = UserSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.save()
+            
+            # Gerar tokens JWT
+            refresh = RefreshToken.for_user(user)
+            
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+                'user': UserSerializer(user).data
+            }, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+```
+
+## 📊 **Sistema de Analytics**
+
+### **13. Tracking de Eventos**
+```python
+from celery import shared_task
+import logging
+
+logger = logging.getLogger(__name__)
+
+@shared_task
+def track_music_event(event_type, music_id, user_id=None, **kwargs):
+    """Task para tracking de eventos musicais"""
+    try:
+        music = Music.objects.get(id=music_id)
+        
+        # Log do evento
+        logger.info(f"Music event: {event_type} - {music.title} by {music.artist.stage_name}")
+        
+        # Atualizar contadores
+        if event_type == 'play':
+            Music.objects.filter(id=music_id).update(
+                streams_count=F('streams_count') + 1
+            )
+        elif event_type == 'download':
+            Music.objects.filter(id=music_id).update(
+                downloads_count=F('downloads_count') + 1
+            )
+        elif event_type == 'like':
+            Music.objects.filter(id=music_id).update(
+                likes_count=F('likes_count') + 1
+            )
+        
+        # Salvar evento detalhado (opcional)
+        # MusicEvent.objects.create(
+        #     music=music,
+        #     user_id=user_id,
+        #     event_type=event_type,
+        #     metadata=kwargs
+        # )
+        
+    except Music.DoesNotExist:
+        logger.error(f"Music not found for event tracking: {music_id}")
+
+@shared_task
+def send_new_music_notification(artist_id, music_id):
+    """Notificar seguidores sobre nova música"""
+    try:
+        artist = Artist.objects.get(id=artist_id)
+        music = Music.objects.get(id=music_id)
+        
+        # Buscar seguidores ativos
+        followers = artist.user.followers.filter(is_active=True)
+        
+        for follower in followers:
+            # Enviar notificação push (implementar conforme necessário)
+            logger.info(f"Notifying {follower.username} about new music: {music.title}")
+            
+    except (Artist.DoesNotExist, Music.DoesNotExist) as e:
+        logger.error(f"Error sending notification: {e}")
+```
+
+## 🚀 **Configurações de Produção**
+
+### **14. Settings para Produção**
+```python
+# settings/production.py
+import os
+from decouple import config
+
+DEBUG = False
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='').split(',')
+
+# Database
+DATABASES = {
+    'default': dj_database_url.config(
+        default=config('DATABASE_URL')
+    )
+}
+
+# Cache Redis
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': config('REDIS_URL'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
+# Celery
+CELERY_BROKER_URL = config('CELERY_BROKER_URL')
+CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND')
+
+# Security
+SECURE_SSL_REDIRECT = True
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+# Static Files
+STATIC_ROOT = '/app/staticfiles'
+MEDIA_ROOT = '/app/media'
+
+# Logging
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': '/app/logs/django.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
+}
+```
+
+## 📝 **Convenções de Código**
+
+### **15. Nomenclatura**
+- **Models**: PascalCase (Artist, Music, Playlist)
+- **Views**: snake_case (music_list_view, artist_detail_view)
+- **APIs**: kebab-case (/api/music-list/, /api/artist-detail/)
+- **Database**: snake_case (music_table, artist_table)
+- **Files**: snake_case (music_serializers.py, artist_views.py)
+
+### **16. Documentação**
+```python
+class Music(models.Model):
+    """
+    Modelo para representar uma música na plataforma.
+    
+    Baseado no sistema do Sua Música, este modelo gerencia
+    todas as informações relacionadas às músicas dos artistas.
+    
+    Attributes:
+        artist (Artist): Artista proprietário da música
+        title (str): Título da música
+        duration (int): Duração em segundos
+        file (FileField): Arquivo de áudio
+        streams_count (int): Número de reproduções
+        downloads_count (int): Número de downloads
+        likes_count (int): Número de curtidas
+    """
+    
+    def get_stream_url(self) -> str:
+        """
+        Retorna a URL para streaming da música.
+        
+        Returns:
+            str: URL completa para reprodução
+            
+        Raises:
+            ValueError: Se a música não estiver ativa
+        """
+        if not self.is_active:
+            raise ValueError("Música não está ativa")
+        
+        return f"/api/music/{self.id}/stream/"
+```
+
+## 🎯 **Objetivos de Performance**
+
+### **17. Métricas Alvo**
+- **Tempo de resposta API**: < 200ms (endpoints simples)
+- **Streaming**: < 1s (início da reprodução)
+- **Busca**: < 500ms (resultados)
+- **Upload**: < 30s (arquivo de 5MB)
+- **Uptime**: 99.9% (disponibilidade)
+
+### **18. Otimizações**
+- **Database**: Índices otimizados, select_related, prefetch_related
+- **Cache**: Redis para dados frequentes (1h para artistas populares)
+- **CDN**: Distribuição global de arquivos de áudio
+- **Rate Limiting**: Controle de requisições por IP
+- **Logs**: Sistema de logging estruturado
+
+---
+
+## 📋 **Checklist de Implementação Backend**
+
+- [ ] Sistema de usuários (User, Artist, Venue)
+- [ ] Sistema de músicas (upload, streaming, download)
+- [ ] Sistema de playlists e favoritos
+- [ ] Sistema de eventos (shows, casas de show)
+- [ ] APIs REST com Django REST Framework
+- [ ] Autenticação JWT
+- [ ] Cache Redis implementado
+- [ ] Celery para tarefas assíncronas
+- [ ] Sistema de analytics e tracking
+- [ ] Rate limiting implementado
+- [ ] Logs e monitoramento
+- [ ] Testes automatizados
+- [ ] Docker e Docker Compose
+- [ ] Configurações de produção
+- [ ] Documentação da API
+
+---
+
+*Baseado na análise da plataforma Sua Música - Padrões específicos para desenvolvimento backend Django*
