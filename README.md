@@ -1,240 +1,155 @@
-# 🎵 Ehit Backend
+# EHIT Backend - Sistema de Música
 
-Backend completo do sistema Ehit - Plataforma de música inspirada no Sua Música, desenvolvida com Django, PostgreSQL, Redis e APIs REST.
+Sistema backend para plataforma de música com Django, PostgreSQL, Redis e Docker.
 
-## 🚀 Tecnologias
+## 🚀 Setup Simplificado
 
-- **Django 5.2.7** - Framework web Python
-- **PostgreSQL** - Banco de dados principal
-- **Redis** - Cache e sessões
-- **Django REST Framework** - APIs REST
-- **Docker & Docker Compose** - Containerização
-- **Celery** - Tarefas assíncronas
-- **Pillow** - Processamento de imagens
+### Desenvolvimento Local
 
-## 📁 Estrutura do Projeto
-
-```
-ehit_backend/
-├── apps/
-│   ├── users/          # Sistema de usuários
-│   ├── artists/        # Gestão de artistas
-│   ├── music/          # Sistema de músicas
-│   └── playlists/      # Playlists e favoritos
-├── ehit_backend/       # Configurações Django
-├── docs/               # Documentação
-├── docker-compose.yml  # Serviços Docker
-├── requirements.txt    # Dependências Python
-└── manage.py          # Script de gerenciamento
-```
-
-## 🛠️ Instalação
-
-### 1. Clone o repositório
 ```bash
-git clone https://github.com/igorbrandao18/ehit-backend.git
-cd ehit-backend
-```
+# Usar apenas banco e Redis
+docker-compose --profile development up -d
 
-### 2. Configure o ambiente
-```bash
-# Copie o arquivo de exemplo
-cp .env.example .env
-
-# Edite as variáveis no .env
-nano .env
-```
-
-### 3. Execute com Docker Compose
-```bash
-# Inicie os serviços (PostgreSQL + Redis)
-docker-compose up -d
-
-# Instale dependências Python
-pip install -r requirements.txt
-
-# Execute migrações
-python manage.py migrate
-
-# Crie superusuário
-python manage.py createsuperuser
-
-# Execute os testes
-python manage.py test
-
-# Inicie o servidor
+# Executar Django localmente
 python manage.py runserver
 ```
 
-## 🌐 Acesso
-
-- **Admin Django**: http://localhost:8000/admin/
-- **APIs REST**: http://localhost:8000/api/
-- **PostgreSQL**: localhost:5433
-- **Redis**: localhost:6379
-
-## 📊 APIs Disponíveis
-
-### 👤 Users API (`/api/users/`)
-- `GET /users/` - Lista usuários
-- `POST /users/create/` - Criar usuário
-- `POST /users/login/` - Login
-- `GET /users/profile/` - Meu perfil
-- `PUT /users/profile/update/` - Atualizar perfil
-
-### 🎵 Artists API (`/api/artists/`)
-- `GET /artists/` - Lista artistas
-- `POST /artists/create/` - Criar artista
-- `GET /artists/{id}/` - Detalhes do artista
-- `POST /artists/{id}/follow/` - Seguir artista
-- `GET /artists/popular/` - Artistas populares
-
-### 🎶 Music API (`/api/music/`)
-- `GET /music/` - Lista músicas
-- `POST /music/create/` - Criar música
-- `POST /music/{id}/stream/` - Contar stream
-- `POST /music/{id}/like/` - Curtir música
-- `GET /music/trending/` - Músicas em alta
-
-### 📋 Playlists API (`/api/playlists/`)
-- `GET /playlists/` - Lista playlists
-- `POST /playlists/create/` - Criar playlist
-- `POST /playlists/{id}/add-music/` - Adicionar música
-- `GET /playlists/favorites/` - Meus favoritos
-- `GET /playlists/popular/` - Playlists populares
-
-## 🧪 Testes
-
-O projeto possui **60 testes automatizados** cobrindo todos os modelos:
+### Produção
 
 ```bash
-# Executar todos os testes
-python manage.py test
-
-# Testes com verbosidade
-python manage.py test --verbosity=2
-
-# Testes específicos
-python manage.py test apps.users
-python manage.py test apps.users.tests.UserModelTest
+# Deploy completo com Nginx
+docker-compose --profile production up -d --build
 ```
 
-**Cobertura:**
-- ✅ 12 testes - Users
-- ✅ 12 testes - Artists  
-- ✅ 12 testes - Music
-- ✅ 24 testes - Playlists
+## 📁 Estrutura Simplificada
 
-## 📈 Funcionalidades
+- **`docker-compose.yml`** - Um arquivo para tudo (dev + prod)
+- **`Dockerfile`** - Multi-stage build (dev + prod)
+- **`nginx.conf`** - Configuração do Nginx
+- **`.github/workflows/`** - CI/CD automatizado
 
-### 🎯 Sistema de Usuários
-- Usuários customizados (listener, artist, venue, admin)
-- Sistema de verificação
-- Perfis completos com avatar e bio
-- Contadores de seguidores
+## 🔧 Comandos Úteis
 
-### 🎵 Gestão de Artistas
-- Perfis artísticos completos
-- Links sociais (Instagram, YouTube, etc.)
-- Estatísticas (streams, downloads, curtidas)
-- Sistema de verificação
+### Desenvolvimento
+```bash
+# Iniciar serviços de desenvolvimento
+docker-compose --profile development up -d
 
-### 🎶 Sistema de Músicas
-- Upload de arquivos de áudio
-- Metadados completos (título, álbum, gênero)
-- Sistema de capas e letras
-- Contadores de reprodução
-- Músicas em destaque e trending
+# Parar serviços
+docker-compose --profile development down
 
-### 📋 Playlists e Favoritos
-- Playlists personalizadas
-- Sistema de favoritos
-- Reordenação de músicas
-- Playlists públicas e privadas
-- Seguir playlists
-
-### ⚡ Performance
-- **Cache Redis** para dados frequentes
-- **Paginação** para listas grandes
-- **Filtros otimizados** com Django ORM
-- **Serializers eficientes**
-
-## 🔧 Configuração
-
-### Variáveis de Ambiente (.env)
-```env
-SECRET_KEY=sua_chave_secreta
-DEBUG=True
-ALLOWED_HOSTS=localhost,127.0.0.1
-DATABASE_URL=postgresql://user:pass@localhost:5433/ehit_db
-REDIS_URL=redis://localhost:6379/1
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/0
+# Ver logs
+docker-compose --profile development logs -f
 ```
-
-### Docker Compose
-```yaml
-services:
-  db:
-    image: postgres:15
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_DB: ehit_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-
-  redis:
-    image: redis:7-alpine
-    ports:
-      - "6379:6379"
-```
-
-## 📚 Documentação
-
-- **[API.md](API.md)** - Documentação completa das APIs
-- **[TESTES.md](TESTES.md)** - Documentação dos testes
-- **[docs/rules.mdc](docs/rules.mdc)** - Padrões de desenvolvimento
-
-## 🚀 Deploy
 
 ### Produção
 ```bash
-# Configurar variáveis de produção
-export DEBUG=False
-export DATABASE_URL=postgresql://user:pass@host:port/db
-export REDIS_URL=redis://host:port/db
+# Deploy completo
+docker-compose --profile production up -d --build
 
-# Instalar dependências
-pip install -r requirements.txt
+# Migrações
+docker-compose --profile production exec web python manage.py migrate
 
-# Executar migrações
-python manage.py migrate
+# Superusuário
+docker-compose --profile production exec web python manage.py createsuperuser
 
-# Coletar arquivos estáticos
-python manage.py collectstatic
-
-# Iniciar com Gunicorn
-gunicorn ehit_backend.wsgi:application
+# Logs
+docker-compose --profile production logs -f web
 ```
 
-## 🤝 Contribuição
+## 🌐 URLs
 
-1. Fork o projeto
-2. Crie uma branch (`git checkout -b feature/nova-feature`)
-3. Commit suas mudanças (`git commit -m 'Add nova feature'`)
-4. Push para a branch (`git push origin feature/nova-feature`)
-5. Abra um Pull Request
+- **Aplicação**: https://prod.ehitapp.com.br
+- **Admin**: https://prod.ehitapp.com.br/admin
+- **API**: https://prod.ehitapp.com.br/api/
+- **Health Check**: https://prod.ehitapp.com.br/health/
 
-## 📄 Licença
+## 📊 Monitoramento
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+- Health check automático no Docker
+- Logs centralizados
+- Métricas de performance
+- SSL automático com Let's Encrypt
 
-## 👨‍💻 Autor
+## 🔐 Credenciais Padrão
 
-**Igor Brandão**
-- GitHub: [@igorbrandao18](https://github.com/igorbrandao18)
+- **Admin**: admin / admin123
+- **Banco**: ehit_user / ehit_password
+- **Redis**: porta 6379
 
----
+## 🚀 Deploy Automático
 
-**🎵 Sistema Ehit - Backend completo e funcional!**
+O GitHub Actions faz deploy automático quando você faz push para `main`:
+
+1. ✅ Testes automatizados
+2. 🐳 Build da imagem Docker
+3. 📤 Push para GitHub Container Registry
+4. 🚀 Deploy no servidor DigitalOcean
+5. 🔒 SSL automático com Let's Encrypt
+6. 🏥 Health checks
+
+## 📝 Logs
+
+```bash
+# Ver logs em tempo real
+docker-compose --profile production logs -f
+
+# Logs específicos
+docker-compose --profile production logs web
+docker-compose --profile production logs nginx
+docker-compose --profile production logs db
+```
+
+## 🛠️ Troubleshooting
+
+### Problemas Comuns
+
+1. **Porta 80 em uso**: `sudo systemctl stop nginx`
+2. **Migrações falhando**: Verificar conexão com banco
+3. **SSL não funciona**: Aguardar propagação DNS (até 24h)
+
+### Comandos de Debug
+
+```bash
+# Status dos containers
+docker-compose --profile production ps
+
+# Entrar no container
+docker-compose --profile production exec web bash
+
+# Verificar logs do Nginx
+docker-compose --profile production logs nginx
+
+# Testar conectividade
+curl -I https://prod.ehitapp.com.br/health/
+```
+
+## 📈 Performance
+
+- **Nginx**: Proxy reverso com cache
+- **Gunicorn**: 3 workers para produção
+- **PostgreSQL**: Otimizado para produção
+- **Redis**: Cache e sessões
+- **SSL**: Let's Encrypt automático
+
+## 🔄 CI/CD
+
+O pipeline GitHub Actions inclui:
+
+- ✅ Testes automatizados
+- 🐳 Build multi-stage Docker
+- 📦 Push para registry
+- 🚀 Deploy zero-downtime
+- 🔒 SSL automático
+- 🏥 Health checks
+- 📊 Monitoramento
+
+## 📞 Suporte
+
+Para problemas ou dúvidas:
+
+1. Verificar logs: `docker-compose logs -f`
+2. Health check: `curl https://prod.ehitapp.com.br/health/`
+3. Status containers: `docker-compose ps`
+4. GitHub Issues para bugs
+5. Documentação completa na pasta `docs/`
