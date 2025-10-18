@@ -1,0 +1,69 @@
+# Docker Compose para desenvolvimento com containers
+# Uso: docker-compose -f docker/dev/docker-compose.yml up -d
+
+services:
+  # Banco de dados PostgreSQL para desenvolvimento
+  db:
+    image: postgres:15-alpine
+    container_name: ehit_postgres_dev
+    environment:
+      POSTGRES_DB: ehit_db
+      POSTGRES_USER: ehit_user
+      POSTGRES_PASSWORD: ehit_password
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - ehit_dev_network
+    restart: unless-stopped
+
+  # Redis para desenvolvimento
+  redis:
+    image: redis:7-alpine
+    container_name: ehit_redis_dev
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_dev_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - ehit_dev_network
+    restart: unless-stopped
+
+  # Aplicação Django para desenvolvimento
+  web:
+    build:
+      context: ../..
+      dockerfile: docker/dev/Dockerfile
+    container_name: ehit_backend_dev
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ../../:/app
+      - static_dev_volume:/app/staticfiles
+      - media_dev_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    networks:
+      - ehit_dev_network
+    restart: unless-stopped
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+  static_dev_volume:
+  media_dev_volume:
+
+networks:
+  ehit_dev_network:
+    driver: bridge

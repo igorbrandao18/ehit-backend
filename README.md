@@ -2,59 +2,98 @@
 
 Sistema backend para plataforma de música com Django, PostgreSQL, Redis e Docker.
 
-## 🚀 Setup Simplificado
+## 🚀 Setup Simplificado com Ambientes Separados
 
-### Desenvolvimento Local
+### 📁 Estrutura de Ambientes
+
+```
+docker/
+├── local/          # Desenvolvimento local (apenas DB + Redis)
+├── dev/            # Desenvolvimento com containers
+└── prod/           # Produção com Nginx
+```
+
+### 🛠️ Scripts de Conveniência
 
 ```bash
-# Usar apenas banco e Redis
-docker-compose --profile development up -d
+# Tornar executável (apenas uma vez)
+chmod +x docker-scripts.sh
+
+# Usar os scripts
+./docker-scripts.sh [ambiente] [ação]
+
+# Exemplos:
+./docker-scripts.sh local up      # Iniciar ambiente local
+./docker-scripts.sh dev build     # Build ambiente dev
+./docker-scripts.sh prod logs     # Ver logs produção
+```
+
+## 🎯 Ambientes Disponíveis
+
+### 1. **Local** - Desenvolvimento Local
+```bash
+# Apenas banco e Redis em containers, Django local
+./docker-scripts.sh local up
+python manage.py runserver
+```
+- **Portas**: PostgreSQL (5433), Redis (6380)
+- **Uso**: Desenvolvimento com Django local
+- **Docs**: [docker/local/README.md](docker/local/README.md)
+
+### 2. **Dev** - Desenvolvimento com Containers
+```bash
+# Todos os serviços em containers
+./docker-scripts.sh dev up
+```
+- **Portas**: PostgreSQL (5432), Redis (6379), Django (8000)
+- **Uso**: Desenvolvimento completo com containers
+- **Docs**: [docker/dev/README.md](docker/dev/README.md)
+
+### 3. **Prod** - Produção
+```bash
+# Ambiente completo de produção
+./docker-scripts.sh prod build
+```
+- **Portas**: Nginx (80/443), serviços internos
+- **Uso**: Deploy em produção
+- **Docs**: [docker/prod/README.md](docker/prod/README.md)
+
+## 🔧 Comandos Rápidos
+
+### Desenvolvimento Local
+```bash
+# Iniciar banco e Redis
+./docker-scripts.sh local up
 
 # Executar Django localmente
 python manage.py runserver
-```
-
-### Produção
-
-```bash
-# Deploy completo com Nginx
-docker-compose --profile production up -d --build
-```
-
-## 📁 Estrutura Simplificada
-
-- **`docker-compose.yml`** - Um arquivo para tudo (dev + prod)
-- **`Dockerfile`** - Multi-stage build (dev + prod)
-- **`nginx.conf`** - Configuração do Nginx
-- **`.github/workflows/`** - CI/CD automatizado
-
-## 🔧 Comandos Úteis
-
-### Desenvolvimento
-```bash
-# Iniciar serviços de desenvolvimento
-docker-compose --profile development up -d
 
 # Parar serviços
-docker-compose --profile development down
+./docker-scripts.sh local down
+```
+
+### Desenvolvimento com Containers
+```bash
+# Ambiente completo
+./docker-scripts.sh dev up
+
+# Entrar no container
+./docker-scripts.sh dev shell
 
 # Ver logs
-docker-compose --profile development logs -f
+./docker-scripts.sh dev logs
 ```
 
 ### Produção
 ```bash
 # Deploy completo
-docker-compose --profile production up -d --build
+./docker-scripts.sh prod build
 
-# Migrações
-docker-compose --profile production exec web python manage.py migrate
+# Ver status
+./docker-scripts.sh prod status
 
-# Superusuário
-docker-compose --profile production exec web python manage.py createsuperuser
-
-# Logs
-docker-compose --profile production logs -f web
+# Ver logs
+./docker-scripts.sh prod logs
 ```
 
 ## 🌐 URLs
@@ -67,7 +106,7 @@ docker-compose --profile production logs -f web
 ## 📊 Monitoramento
 
 - Health check automático no Docker
-- Logs centralizados
+- Logs centralizados por ambiente
 - Métricas de performance
 - SSL automático com Let's Encrypt
 
@@ -75,7 +114,7 @@ docker-compose --profile production logs -f web
 
 - **Admin**: admin / admin123
 - **Banco**: ehit_user / ehit_password
-- **Redis**: porta 6379
+- **Redis**: porta padrão por ambiente
 
 ## 🚀 Deploy Automático
 
@@ -88,23 +127,24 @@ O GitHub Actions faz deploy automático quando você faz push para `main`:
 5. 🔒 SSL automático com Let's Encrypt
 6. 🏥 Health checks
 
-## 📝 Logs
+## 📝 Logs por Ambiente
 
 ```bash
-# Ver logs em tempo real
-docker-compose --profile production logs -f
+# Logs específicos por ambiente
+./docker-scripts.sh local logs
+./docker-scripts.sh dev logs
+./docker-scripts.sh prod logs
 
-# Logs específicos
-docker-compose --profile production logs web
-docker-compose --profile production logs nginx
-docker-compose --profile production logs db
+# Logs específicos de serviços
+docker-compose -f docker/prod/docker-compose.yml logs nginx
+docker-compose -f docker/prod/docker-compose.yml logs web
 ```
 
 ## 🛠️ Troubleshooting
 
 ### Problemas Comuns
 
-1. **Porta 80 em uso**: `sudo systemctl stop nginx`
+1. **Porta em uso**: Verificar com `lsof -i :PORTA`
 2. **Migrações falhando**: Verificar conexão com banco
 3. **SSL não funciona**: Aguardar propagação DNS (até 24h)
 
@@ -112,16 +152,17 @@ docker-compose --profile production logs db
 
 ```bash
 # Status dos containers
-docker-compose --profile production ps
+./docker-scripts.sh [ambiente] status
 
 # Entrar no container
-docker-compose --profile production exec web bash
+./docker-scripts.sh [ambiente] shell
 
-# Verificar logs do Nginx
-docker-compose --profile production logs nginx
+# Verificar logs
+./docker-scripts.sh [ambiente] logs
 
-# Testar conectividade
-curl -I https://prod.ehitapp.com.br/health/
+# Resetar ambiente
+./docker-scripts.sh [ambiente] down
+./docker-scripts.sh [ambiente] up
 ```
 
 ## 📈 Performance
@@ -148,8 +189,8 @@ O pipeline GitHub Actions inclui:
 
 Para problemas ou dúvidas:
 
-1. Verificar logs: `docker-compose logs -f`
+1. Verificar logs: `./docker-scripts.sh [ambiente] logs`
 2. Health check: `curl https://prod.ehitapp.com.br/health/`
-3. Status containers: `docker-compose ps`
+3. Status containers: `./docker-scripts.sh [ambiente] status`
 4. GitHub Issues para bugs
-5. Documentação completa na pasta `docs/`
+5. Documentação completa nas pastas `docker/[ambiente]/README.md`

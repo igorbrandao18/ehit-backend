@@ -1,0 +1,86 @@
+# Docker Compose para produção
+# Uso: docker-compose -f docker/prod/docker-compose.yml up -d --build
+
+services:
+  # Banco de dados PostgreSQL para produção
+  db:
+    image: postgres:15-alpine
+    container_name: ehit_postgres_prod
+    environment:
+      POSTGRES_DB: ehit_db
+      POSTGRES_USER: ehit_user
+      POSTGRES_PASSWORD: ehit_password
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - ehit_prod_network
+    restart: unless-stopped
+
+  # Redis para produção
+  redis:
+    image: redis:7-alpine
+    container_name: ehit_redis_prod
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_prod_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - ehit_prod_network
+    restart: unless-stopped
+
+  # Aplicação Django para produção
+  web:
+    build:
+      context: ../..
+      dockerfile: docker/prod/Dockerfile
+    container_name: ehit_backend_prod
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    volumes:
+      - static_prod_volume:/app/staticfiles
+      - media_prod_volume:/app/media
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=False
+      - DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
+      - REDIS_URL=redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+    networks:
+      - ehit_prod_network
+    restart: unless-stopped
+
+  # Nginx como proxy reverso para produção
+  nginx:
+    image: nginx:alpine
+    container_name: ehit_nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - static_prod_volume:/app/staticfiles
+      - media_prod_volume:/app/media
+      - /etc/letsencrypt:/etc/letsencrypt
+    depends_on:
+      - web
+    networks:
+      - ehit_prod_network
+    restart: unless-stopped
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  static_prod_volume:
+  media_prod_volume:
+
+networks:
+  ehit_prod_network:
+    driver: bridge

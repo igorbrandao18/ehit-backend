@@ -117,7 +117,7 @@ jobs:
       uses: docker/build-push-action@v5
       with:
         context: .
-        target: production
+        file: ./docker/prod/Dockerfile
         push: true
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
@@ -176,7 +176,7 @@ jobs:
         
         # Stop existing containers
         echo "🛑 Stopping existing containers..."
-        docker-compose --profile production down || true
+        docker-compose -f docker/prod/docker-compose.yml down || true
         
         # Remove old images
         echo "🧹 Cleaning up old images..."
@@ -244,7 +244,7 @@ jobs:
         
         # Start services with Docker Compose
         echo "🚀 Starting services with Docker Compose..."
-        docker-compose --profile production up -d --build
+        docker-compose -f docker/prod/docker-compose.yml up -d --build
         
         # Wait for services to be ready
         echo "⏳ Waiting for services to be ready..."
@@ -252,26 +252,26 @@ jobs:
         
         # Check if services are running
         echo "🔍 Checking service status..."
-        docker-compose --profile production ps
+        docker-compose -f docker/prod/docker-compose.yml ps
         
         # Wait for database to be ready
         echo "🗄️ Waiting for database to be ready..."
-        until docker-compose --profile production exec -T db pg_isready -U ehit_user; do
+        until docker-compose -f docker/prod/docker-compose.yml exec -T db pg_isready -U ehit_user; do
           echo "Database is unavailable - sleeping"
           sleep 2
         done
         
         # Run migrations
         echo "🗄️ Running migrations..."
-        docker-compose --profile production exec -T web python manage.py migrate
+        docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py migrate
         
         # Collect static files
         echo "📦 Collecting static files..."
-        docker-compose --profile production exec -T web python manage.py collectstatic --noinput
+        docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py collectstatic --noinput
         
         # Create superuser if not exists
         echo "👤 Creating superuser..."
-        docker-compose --profile production exec -T web python manage.py shell -c "
+        docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py shell -c "
         from django.contrib.auth import get_user_model
         User = get_user_model()
         if not User.objects.filter(username='admin').exists():
@@ -290,7 +290,7 @@ jobs:
         sleep 30
         
         # Test internal health endpoint
-        if docker-compose --profile production exec -T web curl -f http://localhost:8000/health > /dev/null 2>&1; then
+        if docker-compose -f docker/prod/docker-compose.yml exec -T web curl -f http://localhost:8000/health > /dev/null 2>&1; then
             echo "✅ Internal health check passed!"
         else
             echo "⚠️ Internal health check failed"
@@ -305,11 +305,11 @@ jobs:
         
         # Show final status
         echo "📊 Final status:"
-        docker-compose --profile production ps
+        docker-compose -f docker/prod/docker-compose.yml ps
         
         # Show logs for debugging
         echo "📋 Recent logs:"
-        docker-compose --profile production logs --tail=20
+        docker-compose -f docker/prod/docker-compose.yml logs --tail=20
         
         echo "🎉 Deployment completed successfully!"
         echo "🌐 Application available at: https://prod.ehitapp.com.br"

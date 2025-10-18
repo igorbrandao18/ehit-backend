@@ -1,0 +1,40 @@
+# Docker Compose para desenvolvimento local
+# Uso: docker-compose -f docker/local/docker-compose.yml up -d
+
+services:
+  # Banco de dados PostgreSQL para desenvolvimento local
+  db:
+    image: postgres:15-alpine
+    container_name: ehit_postgres_local
+    environment:
+      POSTGRES_DB: ehit_db
+      POSTGRES_USER: ehit_user
+      POSTGRES_PASSWORD: ehit_password
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Porta diferente para não conflitar
+    networks:
+      - ehit_local_network
+    restart: unless-stopped
+
+  # Redis para desenvolvimento local
+  redis:
+    image: redis:7-alpine
+    container_name: ehit_redis_local
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_local_data:/data
+    ports:
+      - "6380:6379"  # Porta diferente para não conflitar
+    networks:
+      - ehit_local_network
+    restart: unless-stopped
+
+volumes:
+  postgres_local_data:
+  redis_local_data:
+
+networks:
+  ehit_local_network:
+    driver: bridge
