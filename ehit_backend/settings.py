@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_ratelimit',
     'axes',
+    'django_filters',
     
     # Local apps
     'ehit_backend.apps.EhitBackendConfig',
@@ -54,6 +55,7 @@ INSTALLED_APPS = [
     'apps.artists',
     'apps.music',
     'apps.playlists',
+    'apps.genres',
     'banners',
 ]
 
@@ -268,13 +270,13 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.FileHandler',
-            'filename': '/app/logs/django.log',
+            'filename': 'logs/django.log',
             'formatter': 'verbose',
         },
         'security_file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            'filename': '/app/logs/security.log',
+            'filename': 'logs/security.log',
             'formatter': 'security',
         },
         'console': {

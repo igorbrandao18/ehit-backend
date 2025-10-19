@@ -1,7 +1,6 @@
 from django.db import models
 from django.utils import timezone
 from apps.users.models import User
-from apps.constants import GENRE_CHOICES
 
 
 class BaseModel(models.Model):
@@ -44,11 +43,12 @@ class Artist(BaseModel):
         null=True,
         verbose_name='Biografia'
     )
-    genre = models.CharField(
-        max_length=100, 
-        choices=GENRE_CHOICES,
+    genre = models.ForeignKey(
+        'genres.Genre',
+        on_delete=models.SET_NULL,
         blank=True, 
         null=True,
+        related_name='artists',
         verbose_name='Gênero Musical'
     )
     location = models.CharField(

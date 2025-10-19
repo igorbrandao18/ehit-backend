@@ -65,6 +65,7 @@ urlpatterns = [
     path('api/artists/', include('apps.artists.urls')),
     path('api/music/', include('apps.music.urls')),
     path('api/playlists/', include('apps.playlists.urls')),
+    path('api/genres/', include('apps.genres.urls')),
 ]
 
 # Servir arquivos de mídia em desenvolvimento

@@ -2,11 +2,19 @@ from rest_framework import serializers
 from .models import Music
 
 
+class GenreSerializer(serializers.ModelSerializer):
+    """Serializer simplificado para gênero"""
+    class Meta:
+        model = Music.genre.field.related_model
+        fields = ['id', 'name', 'slug', 'color', 'icon']
+
+
 class MusicSerializer(serializers.ModelSerializer):
     """Serializer para o modelo Music"""
     
     artist_name = serializers.CharField(source='artist.stage_name', read_only=True)
     artist_username = serializers.CharField(source='artist.user.username', read_only=True)
+    genre_data = GenreSerializer(source='genre', read_only=True)
     duration_formatted = serializers.CharField(source='get_duration_formatted', read_only=True)
     stream_url = serializers.CharField(source='get_stream_url', read_only=True)
     download_url = serializers.CharField(source='get_download_url', read_only=True)
@@ -17,7 +25,7 @@ class MusicSerializer(serializers.ModelSerializer):
         model = Music
         fields = [
             'id', 'artist', 'artist_name', 'artist_username', 'title', 'album',
-            'genre', 'duration', 'duration_formatted', 'file', 'cover', 'lyrics',
+            'genre', 'genre_data', 'duration', 'duration_formatted', 'file', 'cover', 'lyrics',
             'release_date', 'streams_count', 'downloads_count', 'likes_count',
             'is_featured', 'is_popular', 'is_trending', 'stream_url',
             'download_url', 'created_at', 'updated_at', 'is_active'

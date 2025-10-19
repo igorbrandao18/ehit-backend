@@ -2,11 +2,19 @@ from rest_framework import serializers
 from .models import Artist
 
 
+class GenreSerializer(serializers.ModelSerializer):
+    """Serializer simplificado para gênero"""
+    class Meta:
+        model = Artist.genre.field.related_model
+        fields = ['id', 'name', 'slug', 'color', 'icon']
+
+
 class ArtistSerializer(serializers.ModelSerializer):
     """Serializer para o modelo Artist"""
     
     user_username = serializers.CharField(source='user.username', read_only=True)
     user_email = serializers.CharField(source='user.email', read_only=True)
+    genre_data = GenreSerializer(source='genre', read_only=True)
     total_streams = serializers.SerializerMethodField()
     total_downloads = serializers.SerializerMethodField()
     total_likes = serializers.SerializerMethodField()
@@ -15,7 +23,7 @@ class ArtistSerializer(serializers.ModelSerializer):
         model = Artist
         fields = [
             'id', 'user', 'user_username', 'user_email', 'stage_name', 'real_name',
-            'bio', 'genre', 'location', 'website', 'social_links',
+            'bio', 'genre', 'genre_data', 'location', 'website', 'social_links',
             'verified', 'followers_count', 'monthly_listeners',
             'total_streams', 'total_downloads', 'total_likes',
             'created_at', 'updated_at', 'is_active'
