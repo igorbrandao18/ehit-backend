@@ -78,37 +78,24 @@ jobs:
         echo "  StrictHostKeyChecking no" >> ~/.ssh/config
         echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
-    - name: 🛑 Stop Services
+    - name: 🔄 Update Services
       run: |
-        echo "🛑 Stopping services..."
+        echo "🔄 Updating services..."
         ssh root@165.227.180.118 "
-          # Stop system nginx to free ports 80/443
-          echo '🛑 Stopping system nginx...'
-          systemctl stop nginx || true
+          cd /opt/ehit_backend
           
-          # Stop only application containers (preserve database)
-          echo '🛑 Stopping application containers...'
-          docker-compose -f /opt/ehit_backend/docker/prod/docker-compose.yml down || true
+          # Pull latest code
+          echo '📥 Pulling latest code...'
+          git pull origin main
           
-          echo '✅ Services stopped successfully!'
+          # Rebuild and restart only changed containers
+          echo '🔧 Rebuilding containers...'
+          docker-compose -f docker/prod/docker-compose.yml up -d --build --force-recreate
+          
+          echo '✅ Services updated successfully!'
         "
 
-    - name: 🧹 Clean Docker
-      run: |
-        echo "🧹 Cleaning Docker..."
-        ssh root@165.227.180.118 "
-          # Remove only application images (preserve database data)
-          echo '🧹 Removing application images...'
-          docker rmi \$(docker images | grep -E '(ehit|web|nginx)' | awk '{print \$3}') || true
-          
-          # Clean Docker system but preserve volumes
-          echo '🧹 Cleaning Docker system (preserving volumes)...'
-          docker system prune -af || true
-          
-          echo '✅ Docker cleaned successfully!'
-        "
-
-  configure:
+  deploy:
     runs-on: ubuntu-latest
     environment: production
     needs: cleanup
@@ -128,68 +115,13 @@ jobs:
         echo "  StrictHostKeyChecking no" >> ~/.ssh/config
         echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
-    - name: 🔧 Create Environment File
-      run: |
-        echo "🔧 Creating .env file..."
-        ssh root@165.227.180.118 "
-          cd /opt/ehit_backend
-          
-          cat > .env << EOL
-        SECRET_KEY=${{ secrets.DJANGO_SECRET_KEY }}
-        DEBUG=False
-        DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
-        REDIS_URL=redis://redis:6379/0
-        ALLOWED_HOSTS=prod.ehitapp.com.br,165.227.180.118,localhost
-        SECURE_SSL_REDIRECT=False
-        SECURE_PROXY_SSL_HEADER=('HTTP_X_FORWARDED_PROTO', 'https')
-        SESSION_COOKIE_SECURE=False
-        CSRF_COOKIE_SECURE=False
-        CSRF_TRUSTED_ORIGINS=https://prod.ehitapp.com.br,http://prod.ehitapp.com.br
-        EOL
-          
-          echo '✅ Environment file created successfully!'
-        "
-
-  deploy:
-    runs-on: ubuntu-latest
-    environment: production
-    needs: configure
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 🔐 Setup SSH
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-    - name: 🔑 Configure SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "Host 165.227.180.118" >> ~/.ssh/config
-        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
-        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
-
-    - name: 🚀 Start Services
-      run: |
-        echo "🚀 Starting services..."
-        ssh root@165.227.180.118 "
-          cd /opt/ehit_backend
-          
-          # Start services
-          echo '🚀 Starting services...'
-          docker-compose -f docker/prod/docker-compose.yml up -d --build
-          
-          echo '✅ Services started successfully!'
-        "
-
     - name: ⏳ Wait for Services
       run: |
         echo "⏳ Waiting for services..."
         ssh root@165.227.180.118 "
           # Wait for services
           echo '⏳ Waiting for services...'
-          sleep 60
+          sleep 30
           
           # Wait for database
           echo '🗄️ Waiting for database...'
@@ -244,6 +176,15 @@ jobs:
           cd /opt/ehit_backend
           docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py collectstatic --noinput
           echo '✅ Static files collected successfully!'
+        "
+
+    - name: 🎵 Populate Genres
+      run: |
+        echo "🎵 Populating genres..."
+        ssh root@165.227.180.118 "
+          cd /opt/ehit_backend
+          docker-compose -f docker/prod/docker-compose.yml exec -T web python populate_genres.py
+          echo '✅ Genres populated successfully!'
         "
 
   verify:
