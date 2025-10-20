@@ -44,6 +44,33 @@ jobs:
           echo '📁 Location: /opt/ehit_backend'
         "
 
+    - name: 🧹 Clean Docker
+      run: |
+        echo "🧹 Cleaning Docker containers, volumes and images..."
+        ssh root@165.227.180.118 "
+          # Stop all containers
+          echo '🛑 Stopping all containers...'
+          docker stop \$(docker ps -aq) 2>/dev/null || true
+          
+          # Remove all containers
+          echo '🗑️ Removing all containers...'
+          docker rm \$(docker ps -aq) 2>/dev/null || true
+          
+          # Remove all images
+          echo '🗑️ Removing all images...'
+          docker rmi \$(docker images -aq) 2>/dev/null || true
+          
+          # Remove all volumes
+          echo '🗑️ Removing all volumes...'
+          docker volume rm \$(docker volume ls -q) 2>/dev/null || true
+          
+          # Clean system
+          echo '🧹 System cleanup...'
+          docker system prune -a --volumes -f
+          
+          echo '✅ Docker cleanup completed!'
+        "
+
     - name: ✅ Deploy Complete
       run: |
         echo "✅ Simple deploy completed!"
