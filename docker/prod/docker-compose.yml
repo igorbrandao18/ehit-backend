@@ -64,7 +64,7 @@ services:
       - SECRET_KEY=django-insecure-production-key-change-this-in-production
       - DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
       - REDIS_URL=redis://redis:6379/0
-      - ALLOWED_HOSTS=prod.ehitapp.com.br,165.227.180.118,localhost
+      - ALLOWED_HOSTS=prod.ehitapp.com.br,ehitapp.com.br,www.ehitapp.com.br,165.227.180.118,localhost
       - SECURE_SSL_REDIRECT=False
       - SESSION_COOKIE_SECURE=False
       - CSRF_COOKIE_SECURE=False
