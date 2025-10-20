@@ -93,6 +93,23 @@ jobs:
           echo '🌐 Backend available at: http://165.227.180.118:3030'
         "
 
+    - name: 🔍 Verify Deployment
+      run: |
+        echo "🔍 Verifying deployment..."
+        ssh root@165.227.180.118 "
+          echo '📊 Docker containers status:'
+          docker ps -a
+          
+          echo '🌐 Testing port 3030:'
+          curl -f http://localhost:3030/health || echo '❌ Port 3030 not responding'
+          
+          echo '📁 Checking code location:'
+          ls -la /opt/ehit_backend/
+          
+          echo '🔧 Docker compose status:'
+          cd /opt/ehit_backend && docker-compose -f docker/prod/docker-compose.yml ps
+        "
+
     - name: ✅ Deploy Complete
       run: |
         echo "✅ Deploy completed successfully!"
