@@ -82,8 +82,8 @@ jobs:
           docker-compose -f docker/prod/docker-compose.yml up -d --build
           
           # Wait for services to be ready
-          echo '⏳ Waiting for services...'
-          sleep 30
+          echo '⏳ Waiting for services to fully initialize...'
+          sleep 60
           
           # Check container status
           echo '📊 Container status:'
