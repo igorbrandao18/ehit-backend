@@ -13,7 +13,7 @@ class ArtistAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Informações Básicas', {
-            'fields': ('user', 'stage_name', 'real_name', 'bio')
+            'fields': ('user', 'stage_name', 'real_name', 'bio', 'photo')
         }),
         ('Detalhes Artísticos', {
             'fields': ('genre', 'location', 'website', 'social_links')
