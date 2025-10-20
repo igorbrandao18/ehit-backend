@@ -54,7 +54,7 @@ services:
              python manage.py collectstatic --noinput &&
              gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:3030 --workers 3"
     volumes:
-      - static_volume:/app/staticfiles
+      - /var/www/static:/app/staticfiles
       - /var/www/media:/app/media
       - logs_volume:/app/logs
     ports:
@@ -80,7 +80,6 @@ services:
 volumes:
   postgres_prod_data:
   redis_prod_data:
-  static_volume:
   logs_volume:
 
 networks:
