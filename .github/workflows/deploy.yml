@@ -226,7 +226,7 @@ jobs:
           cd /opt/ehit_backend
           docker-compose -f docker/prod/docker-compose.yml ps
           echo '🎉 Deployment completed!'
-          echo '🌐 http://prod.ehitapp.com.br'
+          echo '🌐 http://prod.ehitapp.com.br:3030'
         "
 
     - name: 🔍 Verify deployment
@@ -234,8 +234,8 @@ jobs:
         echo "🔍 Verifying deployment..."
         sleep 30
         
-        # Test health endpoint
-        if curl -f http://prod.ehitapp.com.br/health; then
+        # Test health endpoint on port 3030
+        if curl -f http://prod.ehitapp.com.br:3030/health; then
           echo "✅ Health check passed!"
         else
           echo "❌ Health check failed!"
