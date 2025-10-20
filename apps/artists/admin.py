@@ -4,23 +4,20 @@ from .models import Artist
 
 @admin.register(Artist)
 class ArtistAdmin(admin.ModelAdmin):
-    """Admin para o modelo Artist"""
+    """Admin para o modelo Artist simplificado"""
     
-    list_display = ('stage_name', 'user', 'genre', 'verified', 'followers_count', 'monthly_listeners', 'created_at')
-    list_filter = ('verified', 'genre', 'is_active', 'created_at')
-    search_fields = ('stage_name', 'real_name', 'user__username', 'user__email')
-    ordering = ('-followers_count', '-created_at')
+    list_display = ('stage_name', 'genre', 'is_active', 'created_at')
+    list_filter = ('genre', 'is_active', 'created_at')
+    search_fields = ('stage_name',)
+    ordering = ('-created_at',)
     
     fieldsets = (
         ('Informações Básicas', {
-            'fields': ('user', 'stage_name', 'real_name', 'bio', 'photo')
+            'fields': ('stage_name', 'photo', 'is_active')
         }),
-        ('Detalhes Artísticos', {
-            'fields': ('genre', 'location', 'website', 'social_links')
-        }),
-        ('Status e Estatísticas', {
-            'fields': ('verified', 'followers_count', 'monthly_listeners', 'is_active')
+        ('Gênero Musical', {
+            'fields': ('genre',)
         }),
     )
     
-    readonly_fields = ('followers_count', 'monthly_listeners', 'created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at')

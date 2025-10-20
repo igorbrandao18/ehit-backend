@@ -10,37 +10,17 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class ArtistSerializer(serializers.ModelSerializer):
-    """Serializer para o modelo Artist"""
+    """Serializer para o modelo Artist simplificado"""
     
-    user_username = serializers.CharField(source='user.username', read_only=True)
-    user_email = serializers.CharField(source='user.email', read_only=True)
     genre_data = GenreSerializer(source='genre', read_only=True)
-    total_streams = serializers.SerializerMethodField()
-    total_downloads = serializers.SerializerMethodField()
-    total_likes = serializers.SerializerMethodField()
     
     class Meta:
         model = Artist
         fields = [
-            'id', 'user', 'user_username', 'user_email', 'stage_name', 'real_name',
-            'bio', 'photo', 'genre', 'genre_data', 'location', 'website', 'social_links',
-            'verified', 'followers_count', 'monthly_listeners',
-            'total_streams', 'total_downloads', 'total_likes',
+            'id', 'stage_name', 'photo', 'genre', 'genre_data',
             'created_at', 'updated_at', 'is_active'
         ]
-        read_only_fields = ['id', 'created_at', 'updated_at', 'followers_count', 'monthly_listeners']
-    
-    def get_total_streams(self, obj):
-        """Retorna total de streams"""
-        return obj.get_total_streams()
-    
-    def get_total_downloads(self, obj):
-        """Retorna total de downloads"""
-        return obj.get_total_downloads()
-    
-    def get_total_likes(self, obj):
-        """Retorna total de curtidas"""
-        return obj.get_total_likes()
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
 
 class ArtistCreateSerializer(serializers.ModelSerializer):
@@ -48,52 +28,10 @@ class ArtistCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Artist
-        fields = [
-            'stage_name', 'real_name', 'bio', 'photo', 'genre',
-            'location', 'website', 'social_links'
-        ]
-    
-    def create(self, validated_data):
-        """Cria um novo artista associado ao usuário atual"""
-        user = self.context['request'].user
-        
-        # Verificar se o usuário já tem um artista
-        if hasattr(user, 'artist_profile'):
-            raise serializers.ValidationError("Usuário já possui um perfil de artista.")
-        
-        validated_data['user'] = user
-        return super().create(validated_data)
+        fields = ['stage_name', 'photo', 'genre', 'is_active']
     
     def validate_stage_name(self, value):
         """Validação do nome artístico"""
         if len(value.strip()) < 2:
             raise serializers.ValidationError("Nome artístico deve ter pelo menos 2 caracteres.")
         return value.strip()
-
-
-class ArtistStatsSerializer(serializers.ModelSerializer):
-    """Serializer para estatísticas do artista"""
-    
-    total_streams = serializers.SerializerMethodField()
-    total_downloads = serializers.SerializerMethodField()
-    total_likes = serializers.SerializerMethodField()
-    musics_count = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Artist
-        fields = [
-            'id', 'stage_name', 'followers_count', 'monthly_listeners',
-            'total_streams', 'total_downloads', 'total_likes', 'musics_count'
-        ]
-    
-    def get_total_streams(self, obj):
-        return obj.get_total_streams()
-    
-    def get_total_downloads(self, obj):
-        return obj.get_total_downloads()
-    
-    def get_total_likes(self, obj):
-        return obj.get_total_likes()
-    
-    def get_musics_count(self, obj):
-        return obj.musics.count()
