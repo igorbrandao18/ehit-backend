@@ -44,31 +44,27 @@ jobs:
           echo '📁 Location: /opt/ehit_backend'
         "
 
-    - name: 🧹 Clean Docker
+    - name: 🧹 Smart Docker Cleanup
       run: |
-        echo "🧹 Cleaning Docker containers, volumes and images..."
+        echo "🧹 Smart Docker cleanup (preserving database)..."
         ssh root@165.227.180.118 "
-          # Stop all containers
-          echo '🛑 Stopping all containers...'
-          docker stop \$(docker ps -aq) 2>/dev/null || true
+          # Stop only ehit containers
+          echo '🛑 Stopping ehit containers...'
+          docker stop ehit_backend_prod ehit_postgres_prod ehit_redis_prod 2>/dev/null || true
           
-          # Remove all containers
-          echo '🗑️ Removing all containers...'
-          docker rm \$(docker ps -aq) 2>/dev/null || true
+          # Remove only ehit containers
+          echo '🗑️ Removing ehit containers...'
+          docker rm ehit_backend_prod ehit_postgres_prod ehit_redis_prod 2>/dev/null || true
           
-          # Remove all images
-          echo '🗑️ Removing all images...'
-          docker rmi \$(docker images -aq) 2>/dev/null || true
+          # Remove only ehit images (keep database volume)
+          echo '🗑️ Removing ehit images...'
+          docker rmi prod-web 2>/dev/null || true
           
-          # Remove all volumes
-          echo '🗑️ Removing all volumes...'
-          docker volume rm \$(docker volume ls -q) 2>/dev/null || true
+          # Clean unused images and containers (but preserve volumes)
+          echo '🧹 Cleaning unused resources (preserving volumes)...'
+          docker system prune -f
           
-          # Clean system
-          echo '🧹 System cleanup...'
-          docker system prune -a --volumes -f
-          
-          echo '✅ Docker cleanup completed!'
+          echo '✅ Smart cleanup completed (database preserved)!'
         "
 
     - name: 🚀 Deploy with Docker
