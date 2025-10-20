@@ -1,35 +1,17 @@
 from django.db import models
-from apps.users.models import User
 from apps.artists.models import BaseModel
 from apps.music.models import Music
 
 
 class Playlist(BaseModel):
     """
-    Modelo para playlists baseado no Sua Música
+    Modelo para PlayHits
     
-    Representa uma coleção de músicas criada por usuários.
-    Pode ser pública ou privada e permite organização
-    personalizada de músicas favoritas.
+    Representa uma coleção de músicas com nome, capa e ativação.
     """
-    user = models.ForeignKey(
-        User, 
-        on_delete=models.CASCADE, 
-        related_name='playlists',
-        verbose_name='Usuário'
-    )
     name = models.CharField(
         max_length=200,
         verbose_name='Nome'
-    )
-    description = models.TextField(
-        blank=True, 
-        null=True,
-        verbose_name='Descrição'
-    )
-    is_public = models.BooleanField(
-        default=True,
-        verbose_name='Pública'
     )
     cover = models.ImageField(
         upload_to='playlist_covers/', 
@@ -43,18 +25,14 @@ class Playlist(BaseModel):
         verbose_name='Músicas',
         blank=True
     )
-    followers_count = models.PositiveIntegerField(
-        default=0,
-        verbose_name='Seguidores'
-    )
     
     class Meta:
-        verbose_name = 'Playlist'
-        verbose_name_plural = 'Playlists'
-        ordering = ['-followers_count', '-created_at']
+        verbose_name = 'PlayHit'
+        verbose_name_plural = 'PlayHits'
+        ordering = ['-created_at']
     
     def __str__(self):
-        return f"{self.name} - {self.user.username}"
+        return self.name
     
     def get_total_duration(self):
         """Retorna duração total da playlist em segundos"""
@@ -84,35 +62,3 @@ class Playlist(BaseModel):
         self.musics.remove(music)
 
 
-class UserFavorite(models.Model):
-    """
-    Modelo para músicas favoritas dos usuários
-    
-    Permite que usuários marquem músicas como favoritas
-    sem precisar criar uma playlist específica.
-    """
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='favorites',
-        verbose_name='Usuário'
-    )
-    music = models.ForeignKey(
-        Music,
-        on_delete=models.CASCADE,
-        related_name='favorited_by',
-        verbose_name='Música'
-    )
-    added_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Adicionado em'
-    )
-    
-    class Meta:
-        unique_together = ['user', 'music']
-        ordering = ['-added_at']
-        verbose_name = 'Favorito'
-        verbose_name_plural = 'Favoritos'
-    
-    def __str__(self):
-        return f"{self.user.username} - {self.music.title}"
