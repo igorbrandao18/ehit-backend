@@ -108,6 +108,9 @@ jobs:
           
           echo '🔧 Docker compose status:'
           cd /opt/ehit_backend && docker-compose -f docker/prod/docker-compose.yml ps
+          
+          echo '📋 Backend container logs:'
+          docker logs ehit_backend_prod --tail 20
         "
 
     - name: ✅ Deploy Complete
