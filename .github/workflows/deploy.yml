@@ -60,9 +60,9 @@ jobs:
           echo '🗑️ Removing ehit images...'
           docker rmi prod-web 2>/dev/null || true
           
-          # Clean unused images and containers (but preserve volumes)
-          echo '🧹 Cleaning unused resources (preserving volumes)...'
-          docker system prune -f
+          # Clean unused images and containers (but preserve ALL volumes)
+          echo '🧹 Cleaning unused resources (preserving ALL volumes)...'
+          docker system prune -f --volumes=false
           
           echo '✅ Smart cleanup completed (database preserved)!'
         "
