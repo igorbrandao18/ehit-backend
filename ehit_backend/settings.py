@@ -145,6 +145,11 @@ STATIC_ROOT = config('STATIC_ROOT', default=BASE_DIR / 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = config('MEDIA_ROOT', default=BASE_DIR / 'media')
 
+# File Upload Settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
+FILE_UPLOAD_PERMISSIONS = 0o644
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
