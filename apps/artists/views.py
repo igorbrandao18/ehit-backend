@@ -107,44 +107,6 @@ def artist_complete_view(request, pk):
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-def artist_with_albums_view(request, pk):
-    """Artista com seus álbuns"""
-    try:
-        artist = Artist.objects.get(pk=pk, is_active=True)
-    except Artist.DoesNotExist:
-        return Response(
-            {'error': 'Artista não encontrado'},
-            status=status.HTTP_404_NOT_FOUND
-        )
-    
-    # Serializar artista
-    artist_serializer = ArtistSerializer(artist)
-    
-    # Buscar álbuns do artista com paginação
-    albums = artist.albums.filter(is_active=True).order_by('-featured', '-release_date', '-created_at')
-    
-    # Paginação manual
-    page_size = int(request.query_params.get('page_size', 20))
-    page = int(request.query_params.get('page', 1))
-    
-    start = (page - 1) * page_size
-    end = start + page_size
-    
-    albums_page = albums[start:end]
-    albums_serializer = AlbumSerializer(albums_page, many=True)
-    
-    return Response({
-        'artist': artist_serializer.data,
-        'albums': albums_serializer.data,
-        'count': albums.count(),
-        'page': page,
-        'page_size': page_size,
-        'total_pages': (albums.count() + page_size - 1) // page_size
-    })
-
-
-@api_view(['GET'])
-@permission_classes([permissions.AllowAny])
 def artist_with_musics_view(request, pk):
     """Artista com suas músicas"""
     try:
@@ -187,34 +149,67 @@ def artist_with_musics_view(request, pk):
 # =============================================================================
 
 class AlbumListView(generics.ListAPIView):
-    """Lista de álbuns"""
+    """
+    Lista de álbuns com filtros avançados
+    
+    Query Parameters:
+    - artist: ID do artista para filtrar álbuns
+    - featured: true/false para filtrar álbuns em destaque
+    - search: busca por nome do álbum
+    - ordering: ordenação (padrão: -featured, -release_date, -created_at)
+    - page_size: tamanho da página (padrão: 20)
+    
+    Exemplos:
+    - GET /api/artists/albums/?artist=1
+    - GET /api/artists/albums/?featured=true
+    - GET /api/artists/albums/?search=rock
+    """
     queryset = Album.objects.filter(is_active=True)
     serializer_class = AlbumSerializer
     pagination_class = StandardResultsSetPagination
     permission_classes = [permissions.AllowAny]
     
     def get_queryset(self):
-        """Filtros de busca"""
+        """Filtros de busca avançados"""
         queryset = super().get_queryset()
         
-        # Filtro por artista
-        artist = self.request.query_params.get('artist')
-        if artist:
-            queryset = queryset.filter(artist__id=artist)
+        # Filtro por artista (ID)
+        artist_id = self.request.query_params.get('artist')
+        if artist_id:
+            try:
+                queryset = queryset.filter(artist__id=int(artist_id))
+            except (ValueError, TypeError):
+                pass  # Ignorar IDs inválidos
+        
+        # Filtro por nome do artista
+        artist_name = self.request.query_params.get('artist_name')
+        if artist_name:
+            queryset = queryset.filter(artist__stage_name__icontains=artist_name)
         
         # Filtro por destaque
         featured = self.request.query_params.get('featured')
         if featured and featured.lower() == 'true':
             queryset = queryset.filter(featured=True)
+        elif featured and featured.lower() == 'false':
+            queryset = queryset.filter(featured=False)
         
         # Busca por nome do álbum
         search = self.request.query_params.get('search')
         if search:
             queryset = queryset.filter(name__icontains=search)
         
-        # Ordenação
-        ordering = self.request.query_params.get('ordering', '-featured', '-release_date', '-created_at')
-        queryset = queryset.order_by(ordering)
+        # Filtro por gênero do artista
+        genre = self.request.query_params.get('genre')
+        if genre:
+            queryset = queryset.filter(artist__genre__name__icontains=genre)
+        
+        # Ordenação personalizada
+        ordering = self.request.query_params.get('ordering')
+        if ordering:
+            queryset = queryset.order_by(ordering)
+        else:
+            # Ordenação padrão: destaque primeiro, depois data de lançamento
+            queryset = queryset.order_by('-featured', '-release_date', '-created_at')
         
         return queryset
 
