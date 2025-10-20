@@ -20,6 +20,7 @@ RUN apt-get update \
         libpq-dev \
         gettext \
         curl \
+        ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user

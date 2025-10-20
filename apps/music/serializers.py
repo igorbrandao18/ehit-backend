@@ -18,6 +18,7 @@ class MusicSerializer(serializers.ModelSerializer):
     duration_formatted = serializers.CharField(source='get_duration_formatted', read_only=True)
     stream_url = serializers.CharField(source='get_stream_url', read_only=True)
     download_url = serializers.CharField(source='get_download_url', read_only=True)
+    file_size_mb = serializers.SerializerMethodField()
     is_popular = serializers.BooleanField(read_only=True)
     is_trending = serializers.BooleanField(read_only=True)
     
@@ -25,8 +26,8 @@ class MusicSerializer(serializers.ModelSerializer):
         model = Music
         fields = [
             'id', 'artist', 'artist_name', 'artist_username', 'title', 'album',
-            'genre', 'genre_data', 'duration', 'duration_formatted', 'file', 'cover', 'lyrics',
-            'release_date', 'streams_count', 'downloads_count', 'likes_count',
+            'genre', 'genre_data', 'duration', 'duration_formatted', 'file', 'file_size_mb',
+            'cover', 'lyrics', 'release_date', 'streams_count', 'downloads_count', 'likes_count',
             'is_featured', 'is_popular', 'is_trending', 'stream_url',
             'download_url', 'created_at', 'updated_at', 'is_active'
         ]
@@ -48,6 +49,10 @@ class MusicSerializer(serializers.ModelSerializer):
         if value > 3600:  # 1 hora
             raise serializers.ValidationError("Duração não pode ser maior que 1 hora.")
         return value
+    
+    def get_file_size_mb(self, obj):
+        """Retorna o tamanho do arquivo em MB"""
+        return obj.get_file_size_mb()
 
 
 class MusicCreateSerializer(serializers.ModelSerializer):

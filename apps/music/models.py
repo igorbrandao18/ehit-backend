@@ -1,6 +1,10 @@
 from django.db import models
 from django.utils import timezone
 from apps.artists.models import BaseModel, Artist
+import os
+import subprocess
+import tempfile
+from django.core.files import File
 
 
 class Music(BaseModel):
@@ -129,3 +133,83 @@ class Music(BaseModel):
         from datetime import timedelta
         week_ago = timezone.now() - timedelta(days=7)
         return self.created_at >= week_ago and self.streams_count > 100
+    
+    def compress_audio(self, quality='medium'):
+        """
+        Comprime o arquivo de áudio usando FFmpeg
+        
+        Args:
+            quality (str): Qualidade da compressão ('low', 'medium', 'high')
+                - low: 128kbps (menor tamanho)
+                - medium: 192kbps (balanceado)
+                - high: 320kbps (melhor qualidade)
+        """
+        if not self.file:
+            return False
+        
+        # Configurações de qualidade
+        quality_settings = {
+            'low': '128k',
+            'medium': '192k', 
+            'high': '320k'
+        }
+        
+        bitrate = quality_settings.get(quality, '192k')
+        
+        try:
+            # Criar arquivo temporário
+            with tempfile.NamedTemporaryFile(suffix='.mp3', delete=False) as temp_file:
+                temp_path = temp_file.name
+            
+            # Comando FFmpeg para compressão
+            cmd = [
+                'ffmpeg',
+                '-i', self.file.path,  # Arquivo de entrada
+                '-b:a', bitrate,      # Bitrate de áudio
+                '-ac', '2',           # 2 canais (estéreo)
+                '-ar', '44100',       # Sample rate
+                '-y',                 # Sobrescrever arquivo de saída
+                temp_path             # Arquivo de saída
+            ]
+            
+            # Executar compressão
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                # Verificar se o arquivo comprimido é menor
+                original_size = os.path.getsize(self.file.path)
+                compressed_size = os.path.getsize(temp_path)
+                
+                if compressed_size < original_size:
+                    # Substituir o arquivo original pelo comprimido
+                    with open(temp_path, 'rb') as compressed_file:
+                        django_file = File(compressed_file)
+                        self.file.save(
+                            os.path.basename(self.file.name),
+                            django_file,
+                            save=True
+                        )
+                    
+                    # Limpar arquivo temporário
+                    os.unlink(temp_path)
+                    
+                    return True
+                else:
+                    # Se não conseguiu comprimir, manter o original
+                    os.unlink(temp_path)
+                    return False
+            else:
+                # Erro na compressão
+                os.unlink(temp_path)
+                return False
+                
+        except Exception as e:
+            print(f"Erro na compressão: {e}")
+            return False
+    
+    def get_file_size_mb(self):
+        """Retorna o tamanho do arquivo em MB"""
+        if self.file and os.path.exists(self.file.path):
+            size_bytes = os.path.getsize(self.file.path)
+            return round(size_bytes / (1024 * 1024), 2)
+        return 0
