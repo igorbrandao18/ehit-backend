@@ -109,8 +109,43 @@ jobs:
           docker logs ehit_backend_prod --tail 20
         "
 
+    - name: 🔄 Restart Services
+      run: |
+        echo "🔄 Restarting services to fix 502 errors..."
+        ssh root@165.227.180.118 "
+          cd /opt/ehit_backend
+          
+          echo '🛑 Stopping all services...'
+          docker-compose -f docker/prod/docker-compose.yml stop
+          
+          echo '⏳ Waiting 10 seconds...'
+          sleep 10
+          
+          echo '🚀 Starting all services...'
+          docker-compose -f docker/prod/docker-compose.yml start
+          
+          echo '⏳ Waiting 30 seconds for services to initialize...'
+          sleep 30
+          
+          echo '🔄 Restarting backend service specifically...'
+          docker-compose -f docker/prod/docker-compose.yml restart web
+          
+          echo '⏳ Waiting 20 seconds for backend to fully restart...'
+          sleep 20
+          
+          echo '📊 Final container status:'
+          docker-compose -f docker/prod/docker-compose.yml ps
+          
+          echo '🌐 Testing health endpoint:'
+          curl -f http://localhost:3030/health || echo '❌ Health check failed'
+          
+          echo '📋 Backend logs after restart:'
+          docker logs ehit_backend_prod --tail 30
+        "
+
     - name: ✅ Deploy Complete
       run: |
         echo "✅ Deploy completed successfully!"
         echo "🌐 Backend running at: http://165.227.180.118:3030"
         echo "📁 Code available at: /opt/ehit_backend"
+        echo "🔄 Services restarted to fix 502 errors"
