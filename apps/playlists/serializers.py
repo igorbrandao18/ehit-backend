@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import Playlist, UserFavorite
+from apps.music.serializers import MusicSerializer
 
 
 class PlaylistSerializer(serializers.ModelSerializer):
@@ -57,18 +58,24 @@ class PlaylistDetailSerializer(serializers.ModelSerializer):
     user_username = serializers.CharField(source='user.username', read_only=True)
     musics_count = serializers.SerializerMethodField()
     total_duration_formatted = serializers.CharField(source='get_total_duration_formatted', read_only=True)
+    musics_data = serializers.SerializerMethodField()
     
     class Meta:
         model = Playlist
         fields = [
             'id', 'user', 'user_username', 'name', 'description',
             'is_public', 'cover', 'followers_count', 'musics',
-            'musics_count', 'total_duration_formatted',
+            'musics_data', 'musics_count', 'total_duration_formatted',
             'created_at', 'updated_at', 'is_active'
         ]
     
     def get_musics_count(self, obj):
         return obj.get_musics_count()
+    
+    def get_musics_data(self, obj):
+        """Retorna dados completos das músicas"""
+        musics = obj.musics.all()
+        return MusicSerializer(musics, many=True, context=self.context).data
 
 
 class UserFavoriteSerializer(serializers.ModelSerializer):
