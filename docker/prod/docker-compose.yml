@@ -39,6 +39,9 @@ services:
     container_name: ehit_backend
     command: >
       sh -c "mkdir -p /app/logs &&
+             git clone https://github.com/igorbrandao18/ehit-backend.git /tmp/ehit_backend &&
+             cp -r /tmp/ehit_backend/* /app/ &&
+             rm -rf /tmp/ehit_backend &&
              python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"

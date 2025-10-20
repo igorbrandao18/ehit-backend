@@ -45,18 +45,26 @@ jobs:
         echo "  StrictHostKeyChecking no" >> ~/.ssh/config
         echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
-    - name: 📥 Clone Repository
+    - name: 📥 Prepare Server
       run: |
-        echo "📥 Cloning repository..."
+        echo "📥 Preparing server..."
         ssh root@165.227.180.118 "
           # Remove old directory
           rm -rf /opt/ehit_backend
           
-          # Clone fresh repository
-          git clone https://github.com/igorbrandao18/ehit-backend.git /opt/ehit_backend
+          # Create directory for docker-compose
+          mkdir -p /opt/ehit_backend/docker/prod
           
-          echo '✅ Repository cloned successfully!'
+          echo '✅ Server prepared successfully!'
         "
+
+    - name: 📤 Copy Files
+      run: |
+        echo "📤 Copying files to server..."
+        scp docker/prod/docker-compose.yml root@165.227.180.118:/opt/ehit_backend/docker/prod/
+        scp docker/prod/Dockerfile root@165.227.180.118:/opt/ehit_backend/docker/prod/
+        scp docker/prod/nginx.conf root@165.227.180.118:/opt/ehit_backend/docker/prod/
+        echo '✅ Files copied successfully!'
 
   cleanup:
     runs-on: ubuntu-latest
@@ -78,30 +86,25 @@ jobs:
         echo "  StrictHostKeyChecking no" >> ~/.ssh/config
         echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
-    - name: 🔄 Update Services
+    - name: 🔄 Deploy Services
       run: |
-        echo "🔄 Updating services..."
+        echo "🔄 Deploying services..."
         ssh root@165.227.180.118 "
           cd /opt/ehit_backend
           
-          # Pull latest code
-          echo '📥 Pulling latest code...'
-          git pull origin main
-          
           # Stop all containers first
           echo '🛑 Stopping all containers...'
-          docker-compose -f docker/prod/docker-compose.yml down
+          docker-compose -f docker/prod/docker-compose.yml down || true
           
           # Remove all containers and images to force complete rebuild
           echo '🗑️ Removing containers and images...'
-          docker-compose -f docker/prod/docker-compose.yml rm -f
-          docker image prune -f
+          docker system prune -a --volumes -f
           
           # Rebuild and restart all containers from scratch
           echo '🔧 Rebuilding all containers from scratch...'
-          docker-compose -f docker/prod/docker-compose.yml up -d --build --force-recreate --no-deps
+          docker-compose -f docker/prod/docker-compose.yml up -d --build --force-recreate
           
-          echo '✅ Services updated successfully!'
+          echo '✅ Services deployed successfully!'
         "
 
   deploy:
