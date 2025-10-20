@@ -10,13 +10,14 @@ class PlaylistSerializer(serializers.ModelSerializer):
     musics_count = serializers.SerializerMethodField()
     total_duration = serializers.SerializerMethodField()
     total_duration_formatted = serializers.CharField(source='get_total_duration_formatted', read_only=True)
+    musics_data = serializers.SerializerMethodField()
     
     class Meta:
         model = Playlist
         fields = [
             'id', 'user', 'user_username', 'name', 'description',
             'is_public', 'cover', 'followers_count', 'musics_count',
-            'total_duration', 'total_duration_formatted',
+            'total_duration', 'total_duration_formatted', 'musics_data',
             'created_at', 'updated_at', 'is_active'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at', 'followers_count']
@@ -28,6 +29,11 @@ class PlaylistSerializer(serializers.ModelSerializer):
     def get_total_duration(self, obj):
         """Retorna duração total"""
         return obj.get_total_duration()
+    
+    def get_musics_data(self, obj):
+        """Retorna dados completos das músicas"""
+        musics = obj.musics.all()
+        return MusicSerializer(musics, many=True, context=self.context).data
 
 
 class PlaylistCreateSerializer(serializers.ModelSerializer):
