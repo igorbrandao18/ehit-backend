@@ -74,8 +74,8 @@ def active_artists_view(request):
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-def artist_musics_view(request, pk):
-    """Músicas do artista"""
+def artist_complete_view(request, pk):
+    """Artista completo com álbuns e músicas"""
     try:
         artist = Artist.objects.get(pk=pk, is_active=True)
     except Artist.DoesNotExist:
@@ -84,7 +84,82 @@ def artist_musics_view(request, pk):
             status=status.HTTP_404_NOT_FOUND
         )
     
-    musics = artist.musics.filter(is_active=True).order_by('-created_at')
+    # Serializar artista
+    artist_serializer = ArtistSerializer(artist)
+    
+    # Buscar álbuns do artista
+    albums = artist.albums.filter(is_active=True).order_by('-featured', '-release_date', '-created_at')
+    albums_serializer = AlbumSerializer(albums, many=True)
+    
+    # Buscar músicas do artista
+    musics = artist.musics.filter(is_active=True).order_by('-streams_count', '-created_at')
+    from apps.music.serializers import MusicSerializer
+    musics_serializer = MusicSerializer(musics, many=True)
+    
+    return Response({
+        'artist': artist_serializer.data,
+        'albums': albums_serializer.data,
+        'musics': musics_serializer.data,
+        'albums_count': albums.count(),
+        'musics_count': musics.count()
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def artist_with_albums_view(request, pk):
+    """Artista com seus álbuns"""
+    try:
+        artist = Artist.objects.get(pk=pk, is_active=True)
+    except Artist.DoesNotExist:
+        return Response(
+            {'error': 'Artista não encontrado'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Serializar artista
+    artist_serializer = ArtistSerializer(artist)
+    
+    # Buscar álbuns do artista com paginação
+    albums = artist.albums.filter(is_active=True).order_by('-featured', '-release_date', '-created_at')
+    
+    # Paginação manual
+    page_size = int(request.query_params.get('page_size', 20))
+    page = int(request.query_params.get('page', 1))
+    
+    start = (page - 1) * page_size
+    end = start + page_size
+    
+    albums_page = albums[start:end]
+    albums_serializer = AlbumSerializer(albums_page, many=True)
+    
+    return Response({
+        'artist': artist_serializer.data,
+        'albums': albums_serializer.data,
+        'count': albums.count(),
+        'page': page,
+        'page_size': page_size,
+        'total_pages': (albums.count() + page_size - 1) // page_size
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def artist_with_musics_view(request, pk):
+    """Artista com suas músicas"""
+    try:
+        artist = Artist.objects.get(pk=pk, is_active=True)
+    except Artist.DoesNotExist:
+        return Response(
+            {'error': 'Artista não encontrado'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Serializar artista
+    artist_serializer = ArtistSerializer(artist)
+    
+    # Buscar músicas do artista com paginação
+    musics = artist.musics.filter(is_active=True).order_by('-streams_count', '-created_at')
     
     # Paginação manual
     page_size = int(request.query_params.get('page_size', 20))
@@ -94,12 +169,12 @@ def artist_musics_view(request, pk):
     end = start + page_size
     
     musics_page = musics[start:end]
-    
     from apps.music.serializers import MusicSerializer
-    serializer = MusicSerializer(musics_page, many=True)
+    musics_serializer = MusicSerializer(musics_page, many=True)
     
     return Response({
-        'musics': serializer.data,
+        'artist': artist_serializer.data,
+        'musics': musics_serializer.data,
         'count': musics.count(),
         'page': page,
         'page_size': page_size,
@@ -172,40 +247,6 @@ def featured_albums_view(request):
     return Response({
         'albums': serializer.data,
         'count': len(serializer.data)
-    })
-
-
-@api_view(['GET'])
-@permission_classes([permissions.AllowAny])
-def artist_albums_view(request, pk):
-    """Álbuns do artista"""
-    try:
-        artist = Artist.objects.get(pk=pk, is_active=True)
-    except Artist.DoesNotExist:
-        return Response(
-            {'error': 'Artista não encontrado'},
-            status=status.HTTP_404_NOT_FOUND
-        )
-    
-    albums = artist.albums.filter(is_active=True).order_by('-featured', '-release_date', '-created_at')
-    
-    # Paginação manual
-    page_size = int(request.query_params.get('page_size', 20))
-    page = int(request.query_params.get('page', 1))
-    
-    start = (page - 1) * page_size
-    end = start + page_size
-    
-    albums_page = albums[start:end]
-    
-    serializer = AlbumSerializer(albums_page, many=True)
-    
-    return Response({
-        'albums': serializer.data,
-        'count': albums.count(),
-        'page': page,
-        'page_size': page_size,
-        'total_pages': (albums.count() + page_size - 1) // page_size
     })
 
 
