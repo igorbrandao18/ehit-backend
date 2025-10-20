@@ -41,13 +41,13 @@ services:
       sh -c "mkdir -p /app/logs &&
              python manage.py migrate &&
              python manage.py collectstatic --noinput &&
-             gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+             gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:3030 --workers 3"
     volumes:
       - static_volume:/app/staticfiles
       - media_volume:/app/media
       - logs_volume:/app/logs
     ports:
-      - "3030:8000"
+      - "3030:3030"
     environment:
       - DEBUG=False
       - SECRET_KEY=django-insecure-production-key-change-this-in-production
