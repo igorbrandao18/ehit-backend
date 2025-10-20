@@ -43,6 +43,13 @@ class Artist(BaseModel):
         null=True,
         verbose_name='Biografia'
     )
+    photo = models.ImageField(
+        upload_to='artists/photos/',
+        blank=True,
+        null=True,
+        verbose_name='Foto do Artista',
+        help_text='Foto de perfil do artista'
+    )
     genre = models.ForeignKey(
         'genres.Genre',
         on_delete=models.SET_NULL,

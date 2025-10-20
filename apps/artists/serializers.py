@@ -23,7 +23,7 @@ class ArtistSerializer(serializers.ModelSerializer):
         model = Artist
         fields = [
             'id', 'user', 'user_username', 'user_email', 'stage_name', 'real_name',
-            'bio', 'genre', 'genre_data', 'location', 'website', 'social_links',
+            'bio', 'photo', 'genre', 'genre_data', 'location', 'website', 'social_links',
             'verified', 'followers_count', 'monthly_listeners',
             'total_streams', 'total_downloads', 'total_likes',
             'created_at', 'updated_at', 'is_active'
@@ -49,7 +49,7 @@ class ArtistCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Artist
         fields = [
-            'stage_name', 'real_name', 'bio', 'genre',
+            'stage_name', 'real_name', 'bio', 'photo', 'genre',
             'location', 'website', 'social_links'
         ]
     
