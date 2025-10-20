@@ -88,9 +88,18 @@ jobs:
           echo '📥 Pulling latest code...'
           git pull origin main
           
-          # Rebuild and restart only changed containers
-          echo '🔧 Rebuilding containers...'
-          docker-compose -f docker/prod/docker-compose.yml up -d --build --force-recreate
+          # Stop all containers first
+          echo '🛑 Stopping all containers...'
+          docker-compose -f docker/prod/docker-compose.yml down
+          
+          # Remove all containers and images to force complete rebuild
+          echo '🗑️ Removing containers and images...'
+          docker-compose -f docker/prod/docker-compose.yml rm -f
+          docker image prune -f
+          
+          # Rebuild and restart all containers from scratch
+          echo '🔧 Rebuilding all containers from scratch...'
+          docker-compose -f docker/prod/docker-compose.yml up -d --build --force-recreate --no-deps
           
           echo '✅ Services updated successfully!'
         "
