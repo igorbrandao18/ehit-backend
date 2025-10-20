@@ -1,4 +1,4 @@
-name: 🚀 Deploy EHIT Backend
+name: 🚀 Simple Deploy EHIT Backend
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  setup:
+  deploy:
     runs-on: ubuntu-latest
     environment: production
     steps:
@@ -25,221 +25,26 @@ jobs:
         echo "  StrictHostKeyChecking no" >> ~/.ssh/config
         echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
 
-  prepare:
-    runs-on: ubuntu-latest
-    environment: production
-    needs: setup
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 🔐 Setup SSH
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-    - name: 🔑 Configure SSH
+    - name: 🔍 Test Connection
       run: |
-        mkdir -p ~/.ssh
-        echo "Host 165.227.180.118" >> ~/.ssh/config
-        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
-        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
+        echo "🔍 Testing SSH connection..."
+        ssh root@165.227.180.118 "echo '✅ SSH connection successful!'"
 
-    - name: 📥 Prepare Server
+    - name: 📥 Git Clone
       run: |
-        echo "📥 Preparing server..."
+        echo "📥 Cloning repository..."
         ssh root@165.227.180.118 "
           # Remove old directory
           rm -rf /opt/ehit_backend
           
-          # Create directory for docker-compose
-          mkdir -p /opt/ehit_backend/docker/prod
+          # Clone fresh repository
+          git clone https://github.com/igorbrandao18/ehit-backend.git /opt/ehit_backend
           
-          echo '✅ Server prepared successfully!'
+          echo '✅ Repository cloned successfully!'
+          echo '📁 Location: /opt/ehit_backend'
         "
 
-    - name: 📤 Copy Files
+    - name: ✅ Deploy Complete
       run: |
-        echo "📤 Copying files to server..."
-        scp docker/prod/docker-compose.yml root@165.227.180.118:/opt/ehit_backend/docker/prod/
-        scp docker/prod/Dockerfile root@165.227.180.118:/opt/ehit_backend/docker/prod/
-        scp docker/prod/nginx.conf root@165.227.180.118:/opt/ehit_backend/docker/prod/
-        echo '✅ Files copied successfully!'
-
-  cleanup:
-    runs-on: ubuntu-latest
-    environment: production
-    needs: prepare
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 🔐 Setup SSH
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-    - name: 🔑 Configure SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "Host 165.227.180.118" >> ~/.ssh/config
-        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
-        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
-
-    - name: 🔄 Deploy Services
-      run: |
-        echo "🔄 Deploying services..."
-        ssh root@165.227.180.118 "
-          cd /opt/ehit_backend
-          
-          # Stop all containers first
-          echo '🛑 Stopping all containers...'
-          docker-compose -f docker/prod/docker-compose.yml down || true
-          
-          # Remove all containers and images to force complete rebuild
-          echo '🗑️ Removing containers and images...'
-          docker system prune -a --volumes -f
-          
-          # Rebuild and restart all containers from scratch
-          echo '🔧 Rebuilding all containers from scratch...'
-          docker-compose -f docker/prod/docker-compose.yml up -d --build --force-recreate
-          
-          echo '✅ Services deployed successfully!'
-        "
-
-  deploy:
-    runs-on: ubuntu-latest
-    environment: production
-    needs: cleanup
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 🔐 Setup SSH
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-    - name: 🔑 Configure SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "Host 165.227.180.118" >> ~/.ssh/config
-        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
-        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
-
-    - name: ⏳ Wait for Services
-      run: |
-        echo "⏳ Waiting for services..."
-        ssh root@165.227.180.118 "
-          # Wait for services
-          echo '⏳ Waiting for services...'
-          sleep 30
-          
-          # Wait for database
-          echo '🗄️ Waiting for database...'
-          sleep 10
-          docker-compose -f /opt/ehit_backend/docker/prod/docker-compose.yml exec -T db pg_isready -U ehit_user
-          
-          echo '✅ Services are ready!'
-        "
-
-  migrate:
-    runs-on: ubuntu-latest
-    environment: production
-    needs: deploy
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 🔐 Setup SSH
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-    - name: 🔑 Configure SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "Host 165.227.180.118" >> ~/.ssh/config
-        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
-        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
-
-    - name: 📝 Create Migrations
-      run: |
-        echo "📝 Creating migrations..."
-        ssh root@165.227.180.118 "
-          cd /opt/ehit_backend
-          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py makemigrations
-          echo '✅ Migrations created successfully!'
-        "
-
-    - name: 🗄️ Run Migrations
-      run: |
-        echo "🗄️ Running migrations..."
-        ssh root@165.227.180.118 "
-          cd /opt/ehit_backend
-          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py migrate
-          echo '✅ Migrations completed successfully!'
-        "
-
-    - name: 📦 Collect Static Files
-      run: |
-        echo "📦 Collecting static files..."
-        ssh root@165.227.180.118 "
-          cd /opt/ehit_backend
-          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py collectstatic --noinput
-          echo '✅ Static files collected successfully!'
-        "
-
-    - name: 🎵 Populate Genres
-      run: |
-        echo "🎵 Populating genres..."
-        ssh root@165.227.180.118 "
-          cd /opt/ehit_backend
-          docker-compose -f docker/prod/docker-compose.yml exec -T web python populate_genres.py
-          echo '✅ Genres populated successfully!'
-        "
-
-  verify:
-    runs-on: ubuntu-latest
-    environment: production
-    needs: migrate
-    steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-
-    - name: 🔐 Setup SSH
-      uses: webfactory/ssh-agent@v0.9.0
-      with:
-        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-
-    - name: 🔑 Configure SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "Host 165.227.180.118" >> ~/.ssh/config
-        echo "  StrictHostKeyChecking no" >> ~/.ssh/config
-        echo "  UserKnownHostsFile /dev/null" >> ~/.ssh/config
-
-    - name: 📊 Show Status
-      run: |
-        echo "📊 Final status..."
-        ssh root@165.227.180.118 "
-          cd /opt/ehit_backend
-          docker-compose -f docker/prod/docker-compose.yml ps
-          echo '🎉 Deployment completed!'
-          echo '🌐 http://prod.ehitapp.com.br:3030'
-        "
-
-    - name: 🔍 Verify deployment
-      run: |
-        echo "🔍 Verifying deployment..."
-        sleep 30
-        
-        # Test health endpoint on port 3030
-        if curl -f http://prod.ehitapp.com.br:3030/health; then
-          echo "✅ Health check passed!"
-        else
-          echo "❌ Health check failed!"
-          exit 1
-        fi
-        
-        echo "🎉 Deployment verified successfully!"
+        echo "✅ Simple deploy completed!"
+        echo "🌐 Repository available at: /opt/ehit_backend"
