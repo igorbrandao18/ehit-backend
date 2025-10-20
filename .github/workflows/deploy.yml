@@ -71,7 +71,30 @@ jobs:
           echo '✅ Docker cleanup completed!'
         "
 
+    - name: 🚀 Deploy with Docker
+      run: |
+        echo "🚀 Deploying with Docker Compose..."
+        ssh root@165.227.180.118 "
+          cd /opt/ehit_backend
+          
+          # Build and start containers
+          echo '🔧 Building and starting containers...'
+          docker-compose -f docker/prod/docker-compose.yml up -d --build
+          
+          # Wait for services to be ready
+          echo '⏳ Waiting for services...'
+          sleep 30
+          
+          # Check container status
+          echo '📊 Container status:'
+          docker-compose -f docker/prod/docker-compose.yml ps
+          
+          echo '✅ Docker deployment completed!'
+          echo '🌐 Backend available at: http://165.227.180.118:3030'
+        "
+
     - name: ✅ Deploy Complete
       run: |
-        echo "✅ Simple deploy completed!"
-        echo "🌐 Repository available at: /opt/ehit_backend"
+        echo "✅ Deploy completed successfully!"
+        echo "🌐 Backend running at: http://165.227.180.118:3030"
+        echo "📁 Code available at: /opt/ehit_backend"

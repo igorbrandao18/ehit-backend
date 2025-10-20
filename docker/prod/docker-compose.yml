@@ -1,0 +1,76 @@
+# Docker Compose para produção
+# Uso: docker-compose -f docker/prod/docker-compose.yml up -d
+
+services:
+  # Banco de dados PostgreSQL para produção
+  db:
+    image: postgres:15-alpine
+    container_name: ehit_postgres_prod
+    environment:
+      POSTGRES_DB: ehit_db
+      POSTGRES_USER: ehit_user
+      POSTGRES_PASSWORD: ehit_password
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - ehit_prod_network
+    restart: unless-stopped
+
+  # Redis para produção
+  redis:
+    image: redis:7-alpine
+    container_name: ehit_redis_prod
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_prod_data:/data
+    ports:
+      - "6379:6379"
+    networks:
+      - ehit_prod_network
+    restart: unless-stopped
+
+  # Aplicação Django para produção
+  web:
+    build:
+      context: /opt/ehit_backend
+      dockerfile: docker/prod/Dockerfile
+    container_name: ehit_backend_prod
+    command: >
+      sh -c "mkdir -p /app/logs &&
+             python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - logs_volume:/app/logs
+    ports:
+      - "3030:8000"
+    environment:
+      - DEBUG=False
+      - SECRET_KEY=django-insecure-production-key-change-this-in-production
+      - DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
+      - REDIS_URL=redis://redis:6379/0
+      - ALLOWED_HOSTS=prod.ehitapp.com.br,165.227.180.118,localhost
+      - SECURE_SSL_REDIRECT=False
+      - SESSION_COOKIE_SECURE=False
+      - CSRF_COOKIE_SECURE=False
+    depends_on:
+      - db
+      - redis
+    networks:
+      - ehit_prod_network
+    restart: unless-stopped
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  static_volume:
+  media_volume:
+  logs_volume:
+
+networks:
+  ehit_prod_network:
+    driver: bridge
