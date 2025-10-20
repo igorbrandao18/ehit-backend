@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Playlist, PlaylistMusic, UserFavorite
+from .models import Playlist, UserFavorite
 
 
 class PlaylistSerializer(serializers.ModelSerializer):
@@ -51,28 +51,10 @@ class PlaylistCreateSerializer(serializers.ModelSerializer):
         return value.strip()
 
 
-class PlaylistMusicSerializer(serializers.ModelSerializer):
-    """Serializer para PlaylistMusic"""
-    
-    music_title = serializers.CharField(source='music.title', read_only=True)
-    music_artist = serializers.CharField(source='music.artist.stage_name', read_only=True)
-    music_duration = serializers.IntegerField(source='music.duration', read_only=True)
-    music_duration_formatted = serializers.CharField(source='music.get_duration_formatted', read_only=True)
-    
-    class Meta:
-        model = PlaylistMusic
-        fields = [
-            'id', 'playlist', 'music', 'music_title', 'music_artist',
-            'music_duration', 'music_duration_formatted', 'order', 'added_at'
-        ]
-        read_only_fields = ['id', 'added_at']
-
-
 class PlaylistDetailSerializer(serializers.ModelSerializer):
     """Serializer detalhado para playlist"""
     
     user_username = serializers.CharField(source='user.username', read_only=True)
-    musics = PlaylistMusicSerializer(source='playlistmusic_set', many=True, read_only=True)
     musics_count = serializers.SerializerMethodField()
     total_duration_formatted = serializers.CharField(source='get_total_duration_formatted', read_only=True)
     

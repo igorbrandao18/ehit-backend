@@ -8,7 +8,8 @@ from django.utils import timezone
 from datetime import timedelta
 from .models import Music
 from .serializers import (
-    MusicSerializer, MusicCreateSerializer, MusicStatsSerializer, MusicTrendingSerializer
+    MusicSerializer, MusicCreateSerializer, MusicStatsSerializer, 
+    MusicTrendingSerializer, MusicAutocompleteSerializer
 )
 
 
@@ -278,6 +279,59 @@ def genres_view(request):
     return Response({
         'genres': sorted(list(genres)),
         'count': len(genres)
+    })
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def music_autocomplete_view(request):
+    """
+    Endpoint de autocomplete para busca de músicas
+    Busca por título, artista ou álbum com limite de resultados
+    
+    Parâmetros:
+    - q: termo de busca (obrigatório, mínimo 2 caracteres)
+    - limit: limite de resultados (padrão: 10, máximo: 20)
+    - type: tipo de busca ('all', 'title', 'artist', 'album')
+    """
+    query = request.query_params.get('q', '').strip()
+    limit = min(int(request.query_params.get('limit', 10)), 20)
+    search_type = request.query_params.get('type', 'all')
+    
+    if not query or len(query) < 2:
+        return Response({
+            'results': [],
+            'count': 0,
+            'message': 'Digite pelo menos 2 caracteres para buscar'
+        })
+    
+    # Construir query baseada no tipo de busca
+    queryset = Music.objects.filter(is_active=True)
+    
+    if search_type == 'title':
+        queryset = queryset.filter(title__icontains=query)
+    elif search_type == 'artist':
+        queryset = queryset.filter(artist__stage_name__icontains=query)
+    elif search_type == 'album':
+        queryset = queryset.filter(album__icontains=query)
+    else:  # 'all'
+        queryset = queryset.filter(
+            Q(title__icontains=query) |
+            Q(artist__stage_name__icontains=query) |
+            Q(album__icontains=query)
+        )
+    
+    # Busca otimizada com limite de resultados
+    musics = queryset.select_related('artist').order_by('-streams_count')[:limit]
+    
+    serializer = MusicAutocompleteSerializer(musics, many=True)
+    
+    return Response({
+        'results': serializer.data,
+        'count': len(serializer.data),
+        'query': query,
+        'search_type': search_type,
+        'limit': limit
     })
 
 

@@ -21,4 +21,7 @@ urlpatterns = [
     path('featured/', views.featured_music_view, name='featured-music'),
     path('genres/', views.genres_view, name='genres'),
     path('albums/', views.albums_view, name='albums'),
+    
+    # Busca e autocomplete
+    path('search/', views.music_autocomplete_view, name='music-autocomplete'),
 ]

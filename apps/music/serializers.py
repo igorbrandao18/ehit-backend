@@ -93,6 +93,20 @@ class MusicStatsSerializer(serializers.ModelSerializer):
         ]
 
 
+class MusicAutocompleteSerializer(serializers.ModelSerializer):
+    """Serializer otimizado para autocomplete de músicas"""
+    
+    artist_name = serializers.CharField(source='artist.stage_name', read_only=True)
+    duration_formatted = serializers.CharField(source='get_duration_formatted', read_only=True)
+    
+    class Meta:
+        model = Music
+        fields = [
+            'id', 'title', 'artist_name', 'album', 'genre',
+            'duration_formatted', 'cover'
+        ]
+
+
 class MusicTrendingSerializer(serializers.ModelSerializer):
     """Serializer para músicas trending"""
     

@@ -39,9 +39,9 @@ class Playlist(BaseModel):
     )
     musics = models.ManyToManyField(
         Music, 
-        through='PlaylistMusic', 
         related_name='playlists',
-        verbose_name='Músicas'
+        verbose_name='Músicas',
+        blank=True
     )
     followers_count = models.PositiveIntegerField(
         default=0,
@@ -75,67 +75,13 @@ class Playlist(BaseModel):
         """Retorna número de músicas na playlist"""
         return self.musics.count()
     
-    def add_music(self, music, order=None):
+    def add_music(self, music):
         """Adiciona música à playlist"""
-        if order is None:
-            order = self.get_musics_count()
-        
-        PlaylistMusic.objects.create(
-            playlist=self,
-            music=music,
-            order=order
-        )
+        self.musics.add(music)
     
     def remove_music(self, music):
         """Remove música da playlist"""
-        PlaylistMusic.objects.filter(
-            playlist=self,
-            music=music
-        ).delete()
-    
-    def reorder_musics(self, music_orders):
-        """Reordena músicas na playlist"""
-        for music_id, order in music_orders.items():
-            PlaylistMusic.objects.filter(
-                playlist=self,
-                music_id=music_id
-            ).update(order=order)
-
-
-class PlaylistMusic(models.Model):
-    """
-    Modelo intermediário para playlist-música
-    
-    Permite ordenação personalizada das músicas
-    dentro de cada playlist.
-    """
-    playlist = models.ForeignKey(
-        Playlist, 
-        on_delete=models.CASCADE,
-        verbose_name='Playlist'
-    )
-    music = models.ForeignKey(
-        Music, 
-        on_delete=models.CASCADE,
-        verbose_name='Música'
-    )
-    added_at = models.DateTimeField(
-        auto_now_add=True,
-        verbose_name='Adicionado em'
-    )
-    order = models.PositiveIntegerField(
-        default=0,
-        verbose_name='Ordem'
-    )
-    
-    class Meta:
-        unique_together = ['playlist', 'music']
-        ordering = ['order', '-added_at']
-        verbose_name = 'Música da Playlist'
-        verbose_name_plural = 'Músicas da Playlist'
-    
-    def __str__(self):
-        return f"{self.playlist.name} - {self.music.title}"
+        self.musics.remove(music)
 
 
 class UserFavorite(models.Model):

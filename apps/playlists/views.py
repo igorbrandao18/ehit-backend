@@ -3,10 +3,10 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
-from .models import Playlist, PlaylistMusic, UserFavorite
+from .models import Playlist, UserFavorite
 from .serializers import (
     PlaylistSerializer, PlaylistCreateSerializer, PlaylistDetailSerializer,
-    PlaylistMusicSerializer, UserFavoriteSerializer, UserFavoriteCreateSerializer
+    UserFavoriteSerializer, UserFavoriteCreateSerializer
 )
 
 
@@ -125,7 +125,7 @@ def add_music_to_playlist_view(request, pk):
         )
     
     # Verificar se música já está na playlist
-    if PlaylistMusic.objects.filter(playlist=playlist, music=music).exists():
+    if playlist.musics.filter(pk=music.pk).exists():
         return Response(
             {'error': 'Música já está na playlist'},
             status=status.HTTP_400_BAD_REQUEST

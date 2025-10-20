@@ -64,74 +64,86 @@ def create_test_artists():
     if not users:
         users = [User.objects.first()]
     
+    # Buscar gêneros existentes
+    from apps.genres.models import Genre
+    try:
+        hip_hop_genre = Genre.objects.get(name='Hip Hop')
+        pop_genre = Genre.objects.get(name='Pop')
+        alternative_genre = Genre.objects.get(name='Alternative')
+        rnb_genre = Genre.objects.get(name='R&B')
+        latin_genre = Genre.objects.get(name='Latin')
+    except Genre.DoesNotExist as e:
+        print(f"❌ Gênero não encontrado: {e}")
+        return []
+    
     artists_data = [
         {
             'stage_name': 'Drake',
             'bio': 'Rapper canadense conhecido por hits como "God\'s Plan" e "Hotline Bling"',
-            'genre': 'hip_hop',
+            'genre': hip_hop_genre,
             'verified': True,
             'location': 'Toronto, Canada'
         },
         {
             'stage_name': 'Taylor Swift',
             'bio': 'Cantora e compositora americana, uma das artistas mais vendidas da história',
-            'genre': 'pop',
+            'genre': pop_genre,
             'verified': True,
             'location': 'Nashville, USA'
         },
         {
             'stage_name': 'Ed Sheeran',
             'bio': 'Cantor e compositor britânico conhecido por "Shape of You" e "Perfect"',
-            'genre': 'pop',
+            'genre': pop_genre,
             'verified': True,
             'location': 'Halifax, UK'
         },
         {
             'stage_name': 'Billie Eilish',
             'bio': 'Cantora americana conhecida por seu estilo único e hits como "Bad Guy"',
-            'genre': 'alternative',
+            'genre': alternative_genre,
             'verified': True,
             'location': 'Los Angeles, USA'
         },
         {
             'stage_name': 'The Weeknd',
             'bio': 'Cantor canadense conhecido por "Blinding Lights" e "Starboy"',
-            'genre': 'rnb',
+            'genre': rnb_genre,
             'verified': True,
             'location': 'Toronto, Canada'
         },
         {
             'stage_name': 'Ariana Grande',
             'bio': 'Cantora americana conhecida por sua voz poderosa e hits pop',
-            'genre': 'pop',
+            'genre': pop_genre,
             'verified': True,
             'location': 'Boca Raton, USA'
         },
         {
             'stage_name': 'Post Malone',
             'bio': 'Rapper e cantor americano conhecido por "Sunflower" e "Circles"',
-            'genre': 'hip_hop',
+            'genre': hip_hop_genre,
             'verified': True,
             'location': 'Syracuse, USA'
         },
         {
             'stage_name': 'Dua Lipa',
             'bio': 'Cantora britânica conhecida por "Levitating" e "Don\'t Start Now"',
-            'genre': 'pop',
+            'genre': pop_genre,
             'verified': True,
             'location': 'London, UK'
         },
         {
             'stage_name': 'Bad Bunny',
             'bio': 'Rapper porto-riquenho, um dos maiores nomes do reggaeton',
-            'genre': 'latin',
+            'genre': latin_genre,
             'verified': True,
             'location': 'San Juan, Puerto Rico'
         },
         {
             'stage_name': 'Olivia Rodrigo',
             'bio': 'Cantora americana conhecida por "Drivers License" e "Good 4 U"',
-            'genre': 'pop',
+            'genre': pop_genre,
             'verified': True,
             'location': 'Temecula, USA'
         }
@@ -268,31 +280,31 @@ def create_test_playlists():
     
     playlist_data = [
         {
-            'name': 'Top Hits 2024',
+            'name': 'PlayHits',
             'description': 'Os maiores hits do ano de 2024',
             'is_public': True,
             'user': users[0] if users.count() > 0 else None
         },
         {
-            'name': 'Hip Hop Classics',
+            'name': 'PlayHits Hip Hop',
             'description': 'Clássicos do hip hop que marcaram época',
             'is_public': True,
             'user': users[1] if users.count() > 1 else users[0]
         },
         {
-            'name': 'Pop Favorites',
+            'name': 'PlayHits Pop',
             'description': 'Minhas músicas pop favoritas',
             'is_public': False,
             'user': users[2] if users.count() > 2 else users[0]
         },
         {
-            'name': 'Workout Mix',
+            'name': 'PlayHits Workout',
             'description': 'Músicas para treinar e se exercitar',
             'is_public': True,
             'user': users[0] if users.count() > 0 else None
         },
         {
-            'name': 'Chill Vibes',
+            'name': 'PlayHits Chill',
             'description': 'Músicas relaxantes para momentos de calma',
             'is_public': True,
             'user': users[1] if users.count() > 1 else users[0]
