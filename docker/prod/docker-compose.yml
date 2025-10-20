@@ -50,7 +50,7 @@ services:
     container_name: ehit_backend_prod
     command: >
       sh -c "mkdir -p /app/logs &&
-             python manage.py makemigrations --merge &&
+             python manage.py makemigrations --merge --noinput &&
              python manage.py migrate &&
              python manage.py collectstatic --noinput &&
              gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:3030 --workers 3"
