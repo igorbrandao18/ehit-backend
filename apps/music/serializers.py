@@ -9,12 +9,21 @@ class GenreSerializer(serializers.ModelSerializer):
         fields = ['id', 'name', 'slug', 'color', 'icon']
 
 
+class AlbumSerializer(serializers.ModelSerializer):
+    """Serializer simplificado para álbum"""
+    class Meta:
+        model = Music.album.field.related_model
+        fields = ['id', 'name', 'cover', 'featured']
+
+
 class MusicSerializer(serializers.ModelSerializer):
     """Serializer para o modelo Music"""
     
     artist_name = serializers.CharField(source='artist.stage_name', read_only=True)
-    artist_username = serializers.CharField(source='artist.user.username', read_only=True)
+    album_name = serializers.CharField(source='album.name', read_only=True)
+    album_featured = serializers.BooleanField(source='album.featured', read_only=True)
     genre_data = GenreSerializer(source='genre', read_only=True)
+    album_data = AlbumSerializer(source='album', read_only=True)
     duration_formatted = serializers.CharField(source='get_duration_formatted', read_only=True)
     stream_url = serializers.CharField(source='get_stream_url', read_only=True)
     download_url = serializers.CharField(source='get_download_url', read_only=True)
@@ -25,8 +34,8 @@ class MusicSerializer(serializers.ModelSerializer):
     class Meta:
         model = Music
         fields = [
-            'id', 'artist', 'artist_name', 'artist_username', 'title', 'album',
-            'genre', 'genre_data', 'duration', 'duration_formatted', 'file', 'file_size_mb',
+            'id', 'artist', 'artist_name', 'album', 'album_name', 'album_featured', 'album_data',
+            'title', 'genre', 'genre_data', 'duration', 'duration_formatted', 'file', 'file_size_mb',
             'cover', 'lyrics', 'release_date', 'streams_count', 'downloads_count', 'likes_count',
             'is_featured', 'is_popular', 'is_trending', 'stream_url',
             'download_url', 'created_at', 'updated_at', 'is_active'
@@ -61,21 +70,9 @@ class MusicCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Music
         fields = [
-            'title', 'album', 'genre', 'duration',
-            'file', 'cover', 'lyrics', 'release_date'
+            'artist', 'album', 'title', 'genre', 'duration',
+            'file', 'cover', 'lyrics', 'release_date', 'is_featured'
         ]
-    
-    def create(self, validated_data):
-        """Cria uma nova música associada ao artista atual"""
-        user = self.context['request'].user
-        # Assumir que o usuário é um artista
-        from apps.artists.models import Artist
-        try:
-            artist = Artist.objects.get(user=user)
-            validated_data['artist'] = artist
-        except Artist.DoesNotExist:
-            raise serializers.ValidationError("Usuário deve ser um artista para criar músicas.")
-        return super().create(validated_data)
     
     def validate_title(self, value):
         """Validação do título"""
@@ -88,12 +85,13 @@ class MusicStatsSerializer(serializers.ModelSerializer):
     """Serializer para estatísticas da música"""
     
     artist_name = serializers.CharField(source='artist.stage_name', read_only=True)
+    album_name = serializers.CharField(source='album.name', read_only=True)
     duration_formatted = serializers.CharField(source='get_duration_formatted', read_only=True)
     
     class Meta:
         model = Music
         fields = [
-            'id', 'title', 'artist_name', 'streams_count',
+            'id', 'title', 'artist_name', 'album_name', 'streams_count',
             'downloads_count', 'likes_count', 'duration_formatted'
         ]
 
@@ -102,12 +100,13 @@ class MusicAutocompleteSerializer(serializers.ModelSerializer):
     """Serializer otimizado para autocomplete de músicas"""
     
     artist_name = serializers.CharField(source='artist.stage_name', read_only=True)
+    album_name = serializers.CharField(source='album.name', read_only=True)
     duration_formatted = serializers.CharField(source='get_duration_formatted', read_only=True)
     
     class Meta:
         model = Music
         fields = [
-            'id', 'title', 'artist_name', 'album', 'genre',
+            'id', 'title', 'artist_name', 'album_name', 'genre',
             'duration_formatted', 'cover'
         ]
 
@@ -116,13 +115,13 @@ class MusicTrendingSerializer(serializers.ModelSerializer):
     """Serializer para músicas trending"""
     
     artist_name = serializers.CharField(source='artist.stage_name', read_only=True)
-    artist_verified = serializers.BooleanField(source='artist.verified', read_only=True)
+    album_name = serializers.CharField(source='album.name', read_only=True)
     duration_formatted = serializers.CharField(source='get_duration_formatted', read_only=True)
     
     class Meta:
         model = Music
         fields = [
-            'id', 'title', 'artist_name', 'artist_verified', 'genre',
+            'id', 'title', 'artist_name', 'album_name', 'genre',
             'duration_formatted', 'streams_count', 'likes_count',
             'is_featured', 'cover'
         ]

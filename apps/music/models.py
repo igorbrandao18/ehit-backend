@@ -1,6 +1,6 @@
 from django.db import models
 from django.utils import timezone
-from apps.artists.models import BaseModel, Artist
+from apps.artists.models import BaseModel, Artist, Album
 import os
 import subprocess
 import tempfile
@@ -12,8 +12,7 @@ class Music(BaseModel):
     Modelo para músicas baseado no Sua Música
     
     Representa uma música individual na plataforma.
-    Cada música pertence a um artista e possui metadados
-    completos incluindo arquivo de áudio, capa, letras e estatísticas.
+    Cada música pertence a um artista e pode estar em um álbum.
     """
     artist = models.ForeignKey(
         Artist, 
@@ -21,15 +20,17 @@ class Music(BaseModel):
         related_name='musics',
         verbose_name='Artista'
     )
+    album = models.ForeignKey(
+        Album,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='musics',
+        verbose_name='Álbum'
+    )
     title = models.CharField(
         max_length=200,
         verbose_name='Título'
-    )
-    album = models.CharField(
-        max_length=200, 
-        blank=True, 
-        null=True,
-        verbose_name='Álbum'
     )
     genre = models.ForeignKey(
         'genres.Genre',

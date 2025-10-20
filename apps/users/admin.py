@@ -8,7 +8,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
 # Importar todos os models
 from apps.users.models import User
-from apps.artists.models import Artist
+from apps.artists.models import Artist, Album
 from apps.playlists.models import Playlist
 from apps.music.models import Music
 from apps.genres.models import Genre
@@ -66,6 +66,34 @@ class ArtistAdmin(admin.ModelAdmin):
 
 
 # =============================================================================
+# ALBUMS ADMIN
+# =============================================================================
+
+@admin.register(Album)
+class AlbumAdmin(admin.ModelAdmin):
+    """Admin para o modelo Album"""
+    
+    list_display = ('name', 'artist', 'featured', 'get_musics_count', 'release_date', 'is_active', 'created_at')
+    list_filter = ('featured', 'is_active', 'artist', 'created_at', 'release_date')
+    search_fields = ('name', 'artist__stage_name')
+    ordering = ('-featured', '-release_date', '-created_at')
+    
+    fieldsets = (
+        ('Informações Básicas', {
+            'fields': ('artist', 'name', 'is_active')
+        }),
+        ('Visual', {
+            'fields': ('cover',)
+        }),
+        ('Lançamento', {
+            'fields': ('release_date', 'featured')
+        }),
+    )
+    
+    readonly_fields = ('created_at', 'updated_at')
+
+
+# =============================================================================
 # PLAYLISTS ADMIN
 # =============================================================================
 
@@ -102,14 +130,14 @@ class PlaylistAdmin(admin.ModelAdmin):
 class MusicAdmin(admin.ModelAdmin):
     """Admin para o modelo Music"""
     
-    list_display = ('title', 'artist', 'genre', 'duration', 'streams_count', 'downloads_count', 'likes_count', 'is_featured', 'created_at')
-    list_filter = ('genre', 'is_featured', 'is_active', 'created_at', 'release_date')
-    search_fields = ('title', 'album', 'artist__stage_name')
+    list_display = ('title', 'artist', 'album', 'genre', 'duration', 'streams_count', 'downloads_count', 'likes_count', 'is_featured', 'created_at')
+    list_filter = ('genre', 'album', 'is_featured', 'is_active', 'created_at', 'release_date')
+    search_fields = ('title', 'album__name', 'artist__stage_name')
     ordering = ('-streams_count', '-created_at')
     
     fieldsets = (
         ('Informações Básicas', {
-            'fields': ('artist', 'title', 'album', 'genre', 'duration')
+            'fields': ('artist', 'album', 'title', 'genre', 'duration')
         }),
         ('Arquivos', {
             'fields': ('file', 'cover', 'lyrics')

@@ -45,3 +45,50 @@ class Artist(BaseModel):
     
     def __str__(self):
         return self.stage_name
+
+
+class Album(BaseModel):
+    """
+    Modelo para Álbuns dos artistas
+    
+    Representa álbuns com informações essenciais: nome, artista, capa e destaque.
+    """
+    artist = models.ForeignKey(
+        Artist,
+        on_delete=models.CASCADE,
+        related_name='albums',
+        verbose_name='Artista'
+    )
+    name = models.CharField(
+        max_length=200,
+        verbose_name='Nome do Álbum'
+    )
+    cover = models.ImageField(
+        upload_to='albums/covers/',
+        blank=True,
+        null=True,
+        verbose_name='Capa do Álbum',
+        help_text='Capa do álbum'
+    )
+    release_date = models.DateField(
+        blank=True,
+        null=True,
+        verbose_name='Data de Lançamento'
+    )
+    featured = models.BooleanField(
+        default=False,
+        verbose_name='Destaque',
+        help_text='Álbum em destaque'
+    )
+    
+    class Meta:
+        verbose_name = 'Álbum'
+        verbose_name_plural = 'Álbuns'
+        ordering = ['-featured', '-release_date', '-created_at']
+    
+    def __str__(self):
+        return f"{self.name} - {self.artist.stage_name}"
+    
+    def get_musics_count(self):
+        """Retorna número de músicas no álbum"""
+        return self.musics.count()
