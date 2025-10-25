@@ -126,27 +126,15 @@ jobs:
 
     - name: 🔄 Restart Services
       run: |
-        echo "🔄 Restarting services to fix 502 errors..."
+        echo "🔄 Restarting services with fresh build..."
         ssh root@165.227.180.118 "
           cd /opt/ehit_backend
           
           echo '🛑 Stopping all services...'
-          docker-compose -f docker/prod/docker-compose.yml stop
+          docker-compose -f docker/prod/docker-compose.yml down
           
-          echo '⏳ Waiting 10 seconds...'
-          sleep 10
-          
-          echo '🚀 Starting all services...'
-          docker-compose -f docker/prod/docker-compose.yml start
-          
-          echo '⏳ Waiting 30 seconds for services to initialize...'
-          sleep 30
-          
-          echo '🔄 Restarting backend service specifically...'
-          docker-compose -f docker/prod/docker-compose.yml restart web
-          
-          echo '⏳ Waiting 20 seconds for backend to fully restart...'
-          sleep 20
+          echo '🚀 Rebuilding and starting services with fresh code...'
+          docker-compose -f docker/prod/docker-compose.yml up -d --build
           
           echo '📊 Final container status:'
           docker-compose -f docker/prod/docker-compose.yml ps
