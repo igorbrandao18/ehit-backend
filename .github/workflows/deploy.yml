@@ -89,7 +89,10 @@ jobs:
           echo '⏳ Waiting for services to fully initialize...'
           sleep 60
           
-          # Run migrations if needed
+          # Create and run migrations
+          echo '🔄 Creating new migrations...'
+          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py makemigrations --noinput || echo '⚠️ No new migrations to create'
+          
           echo '🔄 Running database migrations...'
           docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py migrate --noinput || echo '⚠️ Migrations may have failed, continuing...'
           
