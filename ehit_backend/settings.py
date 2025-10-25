@@ -1,3 +1,4 @@
+import sys
 """
 Django settings for ehit_backend project.
 
