@@ -9,7 +9,6 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 # Importar todos os models
 from apps.users.models import User
 from apps.artists.models import Artist, Album
-from apps.playlists.models import Playlist
 from apps.music.models import Music
 from apps.genres.models import Genre
 
@@ -94,33 +93,8 @@ class AlbumAdmin(admin.ModelAdmin):
 
 
 # =============================================================================
-# PLAYLISTS ADMIN
+# PLAYLISTS ADMIN - REMOVED (handled in apps/playlists/admin.py)
 # =============================================================================
-
-@admin.register(Playlist)
-class PlaylistAdmin(admin.ModelAdmin):
-    """Admin para o modelo PlayHit"""
-    
-    list_display = ('name', 'get_musics_count', 'is_active', 'created_at')
-    list_filter = ('is_active', 'created_at')
-    search_fields = ('name',)
-    ordering = ('-created_at',)
-    filter_horizontal = ('musics',)  # Widget horizontal para seleção de músicas
-    
-    fieldsets = (
-        ('Informações Básicas', {
-            'fields': ('name', 'is_active')
-        }),
-        ('Músicas', {
-            'fields': ('musics',)
-        }),
-        ('Visual', {
-            'fields': ('cover',)
-        }),
-    )
-    
-    readonly_fields = ('created_at', 'updated_at')
-
 
 # =============================================================================
 # MUSIC ADMIN
