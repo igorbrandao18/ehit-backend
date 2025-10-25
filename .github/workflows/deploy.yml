@@ -30,18 +30,26 @@ jobs:
         echo "🔍 Testing SSH connection..."
         ssh root@165.227.180.118 "echo '✅ SSH connection successful!'"
 
-    - name: 📥 Git Clone
+    - name: 📥 Git Clone/Pull
       run: |
-        echo "📥 Cloning repository..."
+        echo "📥 Ensuring latest code..."
         ssh root@165.227.180.118 "
-          # Remove old directory
+          # Remove old directory completely
           rm -rf /opt/ehit_backend
           
-          # Clone fresh repository
+          # Clone fresh repository with latest changes
+          echo '🔄 Cloning fresh repository...'
           git clone https://github.com/igorbrandao18/ehit-backend.git /opt/ehit_backend
           
-          echo '✅ Repository cloned successfully!'
+          # Ensure we're on main branch and pull latest
+          cd /opt/ehit_backend
+          git checkout main
+          git pull origin main
+          
+          echo '✅ Repository updated successfully!'
           echo '📁 Location: /opt/ehit_backend'
+          echo '📋 Latest commit:'
+          git log --oneline -1
         "
 
     - name: 🧹 Smart Docker Cleanup
@@ -80,6 +88,14 @@ jobs:
           # Wait for services to be ready
           echo '⏳ Waiting for services to fully initialize...'
           sleep 60
+          
+          # Run migrations if needed
+          echo '🔄 Running database migrations...'
+          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py migrate --noinput || echo '⚠️ Migrations may have failed, continuing...'
+          
+          # Collect static files
+          echo '📁 Collecting static files...'
+          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py collectstatic --noinput || echo '⚠️ Static collection may have failed, continuing...'
           
           # Check container status
           echo '📊 Container status:'
