@@ -9,3 +9,11 @@ class EhitBackendConfig(AppConfig):
         admin.site.site_header = "Éhit Administração"
         admin.site.site_title = "Éhit Administração"
         admin.site.index_title = "Painel Administrativo Éhit"
+        
+        # Importar configurações de admin dos apps
+        try:
+            from apps.playlists.admin import PlaylistAdmin
+            from apps.playlists.models import Playlist
+            admin.site.register(Playlist, PlaylistAdmin)
+        except ImportError:
+            pass
