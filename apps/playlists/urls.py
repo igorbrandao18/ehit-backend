@@ -16,4 +16,5 @@ urlpatterns = [
     
     # Listas especiais
     path('active/', views.active_playhits_view, name='active-playhits'),
+    path('featured/', views.featured_playhits_view, name='featured-playhits'),
 ]

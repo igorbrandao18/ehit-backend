@@ -13,7 +13,7 @@ class PlaylistSerializer(serializers.ModelSerializer):
         model = Playlist
         fields = [
             'id', 'name', 'cover', 'musics_count', 'musics_data',
-            'created_at', 'updated_at', 'is_active'
+            'created_at', 'updated_at', 'is_active', 'is_featured'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
     
@@ -32,7 +32,7 @@ class PlaylistCreateSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Playlist
-        fields = ['name', 'cover', 'is_active']
+        fields = ['name', 'cover', 'is_active', 'is_featured']
     
     def create(self, validated_data):
         """Cria uma nova playlist"""
@@ -56,7 +56,7 @@ class PlaylistDetailSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'name', 'cover', 'musics',
             'musics_data', 'musics_count',
-            'created_at', 'updated_at', 'is_active'
+            'created_at', 'updated_at', 'is_active', 'is_featured'
         ]
     
     def get_musics_count(self, obj):

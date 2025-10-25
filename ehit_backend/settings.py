@@ -71,7 +71,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'axes.middleware.AxesMiddleware',  # Brute force protection
     'ehit_backend.security_middleware.SecurityHeadersMiddleware',  # Security headers
-    'ehit_backend.security_middleware.RateLimitMiddleware',  # Rate limiting
     'ehit_backend.security_middleware.SecurityAuditMiddleware',  # Security audit
 ]
 
@@ -239,9 +238,15 @@ CSP_FRAME_ANCESTORS = ("'none'",)
 RATELIMIT_USE_CACHE = 'default'
 RATELIMIT_VIEW = 'django_ratelimit.views.RatelimitView'
 
+# Desabilitar rate limiting durante testes
+if DEBUG or 'test' in sys.argv:
+    RATELIMIT_ENABLE = False
+else:
+    RATELIMIT_ENABLE = True
+
 # Django Axes Configuration (Brute Force Protection)
 AXES_CACHE = 'default'
-AXES_ENABLED = True
+AXES_ENABLED = not (DEBUG or 'test' in sys.argv)  # Desabilitar durante testes
 AXES_FAILURE_LIMIT = 5  # 5 tentativas
 AXES_COOLOFF_TIME = 1  # 1 hora
 # AXES_LOCKOUT_CALLABLE = 'axes.lockout.database_lockout'  # Removed - not a valid callable

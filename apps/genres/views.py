@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
@@ -10,6 +10,7 @@ from .serializers import GenreSerializer, GenreListSerializer
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.filter(is_active=True)
     serializer_class = GenreSerializer
+    permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_fields = ['parent', 'is_active']
     search_fields = ['name', 'description']

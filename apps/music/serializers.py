@@ -73,6 +73,9 @@ class MusicCreateSerializer(serializers.ModelSerializer):
             'artist', 'album', 'title', 'genre', 'duration',
             'file', 'cover', 'lyrics', 'release_date', 'is_featured'
         ]
+        extra_kwargs = {
+            'file': {'required': False, 'allow_null': True}
+        }
     
     def validate_title(self, value):
         """Validação do título"""

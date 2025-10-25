@@ -2,6 +2,10 @@ from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
+from django.core.cache import cache
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+from django.views.decorators.vary import vary_on_headers
 from .models import Playlist
 from .serializers import (
     PlaylistSerializer, PlaylistCreateSerializer, PlaylistDetailSerializer
@@ -16,14 +20,27 @@ class StandardResultsSetPagination(PageNumberPagination):
 
 
 class PlaylistListView(generics.ListAPIView):
-    """Lista de playlists"""
+    """Lista de playlists com cache Redis"""
     queryset = Playlist.objects.filter(is_active=True)
     serializer_class = PlaylistSerializer
     pagination_class = StandardResultsSetPagination
     permission_classes = [permissions.AllowAny]
     
+    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
+    @method_decorator(vary_on_headers('Authorization'))
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+    
     def get_queryset(self):
-        """Filtros de busca"""
+        """Filtros de busca com cache"""
+        # Criar chave de cache baseada nos parâmetros
+        cache_key = f"playlists_list_{self.request.query_params.get('search', '')}_{self.request.query_params.get('ordering', '-created_at')}"
+        
+        # Tentar buscar do cache primeiro
+        cached_queryset = cache.get(cache_key)
+        if cached_queryset is not None:
+            return cached_queryset
+        
         queryset = super().get_queryset()
         
         # Filtro por visibilidade (apenas ativas)
@@ -34,18 +51,30 @@ class PlaylistListView(generics.ListAPIView):
         if search:
             queryset = queryset.filter(name__icontains=search)
         
+        # Filtro por destaque
+        featured = self.request.query_params.get('featured')
+        if featured and featured.lower() == 'true':
+            queryset = queryset.filter(is_featured=True)
+        
         # Ordenação
         ordering = self.request.query_params.get('ordering', '-created_at')
         queryset = queryset.order_by(ordering)
+        
+        # Cache por 10 minutos
+        cache.set(cache_key, queryset, 60 * 10)
         
         return queryset
 
 
 class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Detalhes da PlayHit"""
+    """Detalhes da PlayHit com cache Redis"""
     queryset = Playlist.objects.filter(is_active=True)
     serializer_class = PlaylistDetailSerializer
     permission_classes = [permissions.AllowAny]
+    
+    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 
 class PlaylistCreateView(generics.CreateAPIView):
@@ -160,15 +189,58 @@ def reorder_playlist_musics_view(request, pk):
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@cache_page(60 * 20)  # Cache por 20 minutos
 def active_playhits_view(request):
-    """PlayHits ativas"""
+    """PlayHits ativas com cache Redis"""
+    cache_key = "active_playhits"
+    
+    # Tentar buscar do cache primeiro
+    cached_data = cache.get(cache_key)
+    if cached_data is not None:
+        return Response(cached_data)
+    
     playhits = Playlist.objects.filter(
         is_active=True
     ).order_by('-created_at')
     
     serializer = PlaylistSerializer(playhits, many=True)
     
-    return Response({
+    response_data = {
         'playhits': serializer.data,
         'count': len(serializer.data)
-    })
+    }
+    
+    # Cache por 15 minutos
+    cache.set(cache_key, response_data, 60 * 15)
+    
+    return Response(response_data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+@cache_page(60 * 20)  # Cache por 20 minutos
+def featured_playhits_view(request):
+    """PlayHits em destaque com cache Redis"""
+    cache_key = "featured_playhits"
+    
+    # Tentar buscar do cache primeiro
+    cached_data = cache.get(cache_key)
+    if cached_data is not None:
+        return Response(cached_data)
+    
+    featured_playhits = Playlist.objects.filter(
+        is_active=True,
+        is_featured=True
+    ).order_by('-created_at')
+    
+    serializer = PlaylistSerializer(featured_playhits, many=True)
+    
+    response_data = {
+        'featured_playhits': serializer.data,
+        'count': len(serializer.data)
+    }
+    
+    # Cache por 15 minutos
+    cache.set(cache_key, response_data, 60 * 15)
+    
+    return Response(response_data)

@@ -25,6 +25,11 @@ class Playlist(BaseModel):
         verbose_name='Músicas',
         blank=True
     )
+    is_featured = models.BooleanField(
+        default=False,
+        verbose_name='Em Destaque',
+        help_text='Se marcado, esta playlist aparecerá em destaque'
+    )
     
     class Meta:
         verbose_name = 'PlayHit'
