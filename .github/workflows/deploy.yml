@@ -85,10 +85,6 @@ jobs:
           echo '🔧 Building and starting containers...'
           docker-compose -f docker/prod/docker-compose.yml up -d --build
           
-          # Wait for services to be ready
-          echo '⏳ Waiting for services to fully initialize...'
-          sleep 60
-          
           # Create and run migrations
           echo '🔄 Creating new migrations...'
           docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py makemigrations --noinput || echo '⚠️ No new migrations to create'
