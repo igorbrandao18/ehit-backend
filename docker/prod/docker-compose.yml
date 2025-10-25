@@ -45,8 +45,8 @@ services:
   # Aplicação Django para produção
   web:
     build:
-      context: /opt/ehit_backend
-      dockerfile: docker/prod/Dockerfile
+      context: .
+      dockerfile: Dockerfile
     container_name: ehit_backend_prod
     command: >
       sh -c "mkdir -p /app/logs &&
