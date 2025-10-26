@@ -15,6 +15,7 @@ urlpatterns = [
     
     # Busca completa de artista (com álbuns e músicas)
     path('<int:pk>/complete/', views.artist_complete_view, name='artist-complete'),
+    path('<int:pk>/albums/', views.artist_albums_view, name='artist-albums'),
     path('<int:pk>/with-musics/', views.artist_with_musics_view, name='artist-with-musics'),
     
     # Listas especiais

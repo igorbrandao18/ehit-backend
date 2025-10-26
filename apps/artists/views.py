@@ -156,6 +156,46 @@ def artist_complete_view(request, pk):
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
+@cache_page(60 * 20)  # Cache por 20 minutos
+def artist_albums_view(request, pk):
+    """Álbuns do artista com cache Redis"""
+    cache_key = f"artist_albums_{pk}"
+    
+    # Tentar buscar do cache primeiro
+    cached_data = cache.get(cache_key)
+    if cached_data is not None:
+        return Response(cached_data)
+    
+    try:
+        artist = Artist.objects.get(pk=pk, is_active=True)
+    except Artist.DoesNotExist:
+        return Response(
+            {'error': 'Artista não encontrado'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+    
+    # Buscar álbuns do artista
+    albums = artist.albums.filter(is_active=True).order_by('-featured', '-release_date', '-created_at')
+    albums_serializer = AlbumSerializer(albums, many=True)
+    
+    response_data = {
+        'artist': {
+            'id': artist.id,
+            'stage_name': artist.stage_name,
+            'photo': artist.photo.url if artist.photo else None,
+        },
+        'albums': albums_serializer.data,
+        'count': albums.count()
+    }
+    
+    # Cache por 15 minutos
+    cache.set(cache_key, response_data, 60 * 15)
+    
+    return Response(response_data)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
 def artist_with_musics_view(request, pk):
     """Artista com suas músicas"""
     try:
