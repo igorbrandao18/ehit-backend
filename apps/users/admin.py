@@ -88,51 +88,9 @@ class AlbumAdmin(admin.ModelAdmin):
         ('Lançamento', {
             'fields': ('release_date', 'featured')
         }),
-        ('Músicas do Álbum', {
-            'fields': ('album_musics',),
-            'classes': ('collapse',)
-        }),
     )
     
-    readonly_fields = ('created_at', 'updated_at', 'album_musics')
-    
-    def album_musics(self, obj):
-        """Widget customizado para selecionar músicas - similar ao PlayHits"""
-        if not obj.pk:
-            return "Salve o álbum primeiro para adicionar músicas"
-        
-        from apps.music.models import Music
-        # Buscar músicas do artista sem álbum ou que já estão neste álbum
-        musics = Music.objects.filter(
-            models.Q(artist=obj.artist, album__isnull=True) | models.Q(album=obj),
-            is_active=True
-        ).distinct()
-        
-        if not musics.exists():
-            return "Nenhuma música disponível para este artista"
-        
-        html = '''
-        <style>
-        .album_musics_widget {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-        }
-        .music_item {
-            padding: 5px;
-            border-bottom: 1px solid #eee;
-        }
-        </style>
-        '''
-        html += '<div class="album_musics_widget">'
-        html += '<strong>Músicas Disponíveis (Busque e adicione via Músicas abaixo):</strong><br><br>'
-        html += '<p>Use as músicas inline abaixo para adicionar músicas ao álbum.</p>'
-        html += '</div>'
-        return html
-    
-    album_musics.short_description = "Músicas do Álbum"
-    album_musics.allow_tags = True
+    readonly_fields = ('created_at', 'updated_at')
     
     class MusicInline(admin.TabularInline):
         """Inline para músicas no admin de álbuns - simplificado"""
