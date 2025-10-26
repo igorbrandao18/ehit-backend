@@ -68,6 +68,14 @@ class ArtistAdmin(admin.ModelAdmin):
 # ALBUMS ADMIN
 # =============================================================================
 
+class MusicInline(admin.TabularInline):
+    """Inline para músicas no admin de álbuns"""
+    model = Music
+    extra = 1
+    fields = ('title', 'artist', 'genre', 'duration', 'file', 'cover', 'is_active')
+    verbose_name = "Música"
+    verbose_name_plural = "Músicas do Álbum"
+
 @admin.register(Album)
 class AlbumAdmin(admin.ModelAdmin):
     """Admin para o modelo Album"""
@@ -88,6 +96,8 @@ class AlbumAdmin(admin.ModelAdmin):
             'fields': ('release_date', 'featured')
         }),
     )
+    
+    inlines = [MusicInline]  # Adiciona as músicas inline
     
     readonly_fields = ('created_at', 'updated_at')
 
