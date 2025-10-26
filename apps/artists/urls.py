@@ -16,4 +16,7 @@ urlpatterns = [
     
     # Álbuns do artista (essencial para buscar 100% dos álbuns)
     path('<int:pk>/albums/', views.artist_albums_view, name='artist-albums'),
+    
+    # Músicas do álbum (para ver músicas de um álbum específico)
+    path('albums/<int:pk>/musics/', views.album_musics_view, name='album-musics'),
 ]
