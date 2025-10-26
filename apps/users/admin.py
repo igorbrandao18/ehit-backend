@@ -97,11 +97,35 @@ class AlbumAdmin(admin.ModelAdmin):
         ('Lançamento', {
             'fields': ('release_date', 'featured')
         }),
+        ('Músicas do Álbum', {
+            'fields': ('existing_musics',),
+            'description': 'Selecione músicas existentes do artista para adicionar ao álbum'
+        }),
     )
     
     inlines = [MusicInline]  # Adiciona as músicas inline
     
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at', 'existing_musics')
+    
+    def existing_musics(self, obj):
+        """Campo customizado para mostrar músicas existentes do artista"""
+        if not obj.pk or not obj.artist:
+            return "Selecione um artista e salve o álbum para ver músicas disponíveis"
+        
+        from apps.music.models import Music
+        musics = Music.objects.filter(artist=obj.artist, album__isnull=True, is_active=True)
+        
+        if not musics.exists():
+            return "Nenhuma música disponível para este artista"
+        
+        html = '<ul>'
+        for music in musics:
+            html += f'<li>{music.title} <a href="/admin/music/music/{music.id}/change/" target="_blank">[Ver]</a></li>'
+        html += '</ul>'
+        return html
+    
+    existing_musics.short_description = "Músicas Disponíveis do Artista (sem álbum)"
+    existing_musics.allow_tags = True
     
     def save_formset(self, request, form, formset, change):
         """Define valores padrão para músicas ao salvar"""
