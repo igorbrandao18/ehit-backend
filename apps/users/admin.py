@@ -69,10 +69,10 @@ class ArtistAdmin(admin.ModelAdmin):
 # =============================================================================
 
 class MusicInline(admin.TabularInline):
-    """Inline para músicas no admin de álbuns"""
+    """Inline para músicas no admin de álbuns - simplificado"""
     model = Music
     extra = 1
-    fields = ('title', 'artist', 'genre', 'duration', 'file', 'cover', 'is_active')
+    fields = ('title', 'artist', 'file', 'is_active')
     verbose_name = "Música"
     verbose_name_plural = "Músicas do Álbum"
 
@@ -100,6 +100,28 @@ class AlbumAdmin(admin.ModelAdmin):
     inlines = [MusicInline]  # Adiciona as músicas inline
     
     readonly_fields = ('created_at', 'updated_at')
+    
+    def save_formset(self, request, form, formset, change):
+        """Define valores padrão para músicas ao salvar"""
+        instances = formset.save(commit=False)
+        for instance in instances:
+            # Gênero vem do artista
+            if instance.artist and instance.artist.genre:
+                instance.genre = instance.artist.genre
+            
+            # Duração padrão de 180s (3 minutos)
+            if not instance.duration:
+                instance.duration = 180
+            
+            # Capa vem do álbum
+            if not instance.cover and form.instance.cover:
+                instance.cover = form.instance.cover
+            
+            instance.save()
+        
+        # Deletar itens marcados
+        for obj in formset.deleted_objects:
+            obj.delete()
 
 
 # =============================================================================
