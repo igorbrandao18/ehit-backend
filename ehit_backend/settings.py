@@ -27,7 +27,14 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-yp0o76+y2+n#fu32n+c@%017km^6v%g%ss4a)0@8p$sg%^z4yk')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+# Desativado para mostrar erros na tela em produção
+DEBUG = config('DEBUG', default=False, cast=bool)
+
+# Mostrar erros detalhados mesmo sem DEBUG
+if not DEBUG:
+    import django
+    from django.views.debug import technical_500_response
+    from django.http import HttpRequest
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
