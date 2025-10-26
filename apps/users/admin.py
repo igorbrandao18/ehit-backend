@@ -5,6 +5,7 @@ Centraliza a administração de todos os modelos em um local
 
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.db import models
 
 # Importar todos os models
 from apps.users.models import User
@@ -68,19 +69,9 @@ class ArtistAdmin(admin.ModelAdmin):
 # ALBUMS ADMIN
 # =============================================================================
 
-class MusicInline(admin.TabularInline):
-    """Inline para músicas no admin de álbuns - simplificado"""
-    model = Music
-    extra = 1
-    fields = ('title', 'file', 'is_active')
-    verbose_name = "Música"
-    verbose_name_plural = "Músicas do Álbum"
-    can_delete = True
-    show_change_link = True  # Permite clicar para editar a música
-
 @admin.register(Album)
 class AlbumAdmin(admin.ModelAdmin):
-    """Admin para o modelo Album"""
+    """Admin para o modelo Album - similar a Playlist com filter_horizontal"""
     
     list_display = ('name', 'artist', 'featured', 'get_musics_count', 'release_date', 'is_active', 'created_at')
     list_filter = ('featured', 'is_active', 'artist', 'created_at', 'release_date')
@@ -98,38 +89,67 @@ class AlbumAdmin(admin.ModelAdmin):
             'fields': ('release_date', 'featured')
         }),
         ('Músicas do Álbum', {
-            'fields': ('existing_musics',),
-            'description': 'Selecione músicas existentes do artista para adicionar ao álbum'
+            'fields': ('album_musics',),
+            'classes': ('collapse',)
         }),
     )
     
-    inlines = [MusicInline]  # Adiciona as músicas inline
+    readonly_fields = ('created_at', 'updated_at', 'album_musics')
     
-    readonly_fields = ('created_at', 'updated_at', 'existing_musics')
-    
-    class Media:
-        js = ('admin/js/album_admin.js',)
-    
-    def existing_musics(self, obj):
-        """Campo customizado para mostrar músicas existentes do artista"""
-        # Mesmo que o álbum não esteja salvo, mostra músicas se o artista estiver selecionado
-        if not hasattr(obj, 'artist') or not obj.artist:
-            return '<div id="existing_musics">Selecione um artista para ver músicas disponíveis</div>'
+    def album_musics(self, obj):
+        """Widget customizado para selecionar músicas - similar ao PlayHits"""
+        if not obj.pk:
+            return "Salve o álbum primeiro para adicionar músicas"
         
         from apps.music.models import Music
-        musics = Music.objects.filter(artist=obj.artist, album__isnull=True, is_active=True)
+        # Buscar músicas do artista sem álbum ou que já estão neste álbum
+        musics = Music.objects.filter(
+            models.Q(artist=obj.artist, album__isnull=True) | models.Q(album=obj),
+            is_active=True
+        ).distinct()
         
         if not musics.exists():
-            return '<div id="existing_musics">Nenhuma música disponível para este artista</div>'
+            return "Nenhuma música disponível para este artista"
         
-        html = '<div id="existing_musics"><ul>'
-        for music in musics:
-            html += f'<li>{music.title} <a href="/admin/music/music/{music.id}/change/" target="_blank">[Ver]</a></li>'
-        html += '</ul></div>'
+        html = '''
+        <style>
+        .album_musics_widget {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        .music_item {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        </style>
+        '''
+        html += '<div class="album_musics_widget">'
+        html += '<strong>Músicas Disponíveis (Busque e adicione via Músicas abaixo):</strong><br><br>'
+        html += '<p>Use as músicas inline abaixo para adicionar músicas ao álbum.</p>'
+        html += '</div>'
         return html
     
-    existing_musics.short_description = "Músicas Disponíveis do Artista (sem álbum)"
-    existing_musics.allow_tags = True
+    album_musics.short_description = "Músicas do Álbum"
+    album_musics.allow_tags = True
+    
+    class MusicInline(admin.TabularInline):
+        """Inline para músicas no admin de álbuns - simplificado"""
+        model = Music
+        extra = 1
+        fields = ('title', 'file', 'is_active')  # Artista vem do álbum automaticamente
+        verbose_name = "Música"
+        verbose_name_plural = "Músicas do Álbum"
+        can_delete = True
+        show_change_link = True
+        
+        def get_queryset(self, request):
+            """Filtrar músicas do artista do álbum quando editando álbum existente"""
+            qs = super().get_queryset(request)
+            return qs
+    
+    inlines = [MusicInline]
     
     def save_formset(self, request, form, formset, change):
         """Define valores padrão para músicas ao salvar"""
