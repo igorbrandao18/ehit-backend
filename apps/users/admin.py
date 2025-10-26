@@ -112,19 +112,20 @@ class AlbumAdmin(admin.ModelAdmin):
     
     def existing_musics(self, obj):
         """Campo customizado para mostrar músicas existentes do artista"""
-        if not obj.pk or not obj.artist:
-            return "Selecione um artista e salve o álbum para ver músicas disponíveis"
+        # Mesmo que o álbum não esteja salvo, mostra músicas se o artista estiver selecionado
+        if not hasattr(obj, 'artist') or not obj.artist:
+            return '<div id="existing_musics">Selecione um artista para ver músicas disponíveis</div>'
         
         from apps.music.models import Music
         musics = Music.objects.filter(artist=obj.artist, album__isnull=True, is_active=True)
         
         if not musics.exists():
-            return "Nenhuma música disponível para este artista"
+            return '<div id="existing_musics">Nenhuma música disponível para este artista</div>'
         
-        html = '<ul>'
+        html = '<div id="existing_musics"><ul>'
         for music in musics:
             html += f'<li>{music.title} <a href="/admin/music/music/{music.id}/change/" target="_blank">[Ver]</a></li>'
-        html += '</ul>'
+        html += '</ul></div>'
         return html
     
     existing_musics.short_description = "Músicas Disponíveis do Artista (sem álbum)"
