@@ -107,6 +107,9 @@ class AlbumAdmin(admin.ModelAdmin):
     
     readonly_fields = ('created_at', 'updated_at', 'existing_musics')
     
+    class Media:
+        js = ('admin/js/album_admin.js',)
+    
     def existing_musics(self, obj):
         """Campo customizado para mostrar músicas existentes do artista"""
         if not obj.pk or not obj.artist:
