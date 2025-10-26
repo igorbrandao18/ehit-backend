@@ -72,9 +72,11 @@ class MusicInline(admin.TabularInline):
     """Inline para músicas no admin de álbuns - simplificado"""
     model = Music
     extra = 1
-    fields = ('title', 'artist', 'file', 'is_active')
+    fields = ('title', 'file', 'is_active')
     verbose_name = "Música"
     verbose_name_plural = "Músicas do Álbum"
+    can_delete = True
+    show_change_link = True  # Permite clicar para editar a música
 
 @admin.register(Album)
 class AlbumAdmin(admin.ModelAdmin):
@@ -105,7 +107,11 @@ class AlbumAdmin(admin.ModelAdmin):
         """Define valores padrão para músicas ao salvar"""
         instances = formset.save(commit=False)
         for instance in instances:
-            # Gênero vem do artista
+            # Artista vem do álbum
+            if not instance.artist and form.instance.artist:
+                instance.artist = form.instance.artist
+            
+            # Gênero vem do artista do álbum
             if instance.artist and instance.artist.genre:
                 instance.genre = instance.artist.genre
             
