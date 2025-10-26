@@ -60,12 +60,13 @@ urlpatterns = [
     path('artist/albums/', artist_albums, name='artist_albums'),
     path('artist/stats/', artist_stats, name='artist_stats'),
     
-    # APIs
-    path('api/users/', include('apps.users.urls')),
+    # APIs - Simplified (only what's used)
     path('api/artists/', include('apps.artists.urls')),
-    path('api/music/', include('apps.music.urls')),
     path('api/playlists/', include('apps.playlists.urls')),
-    path('api/genres/', include('apps.genres.urls')),
+    # Commented out - not used
+    # path('api/users/', include('apps.users.urls')),
+    # path('api/music/', include('apps.music.urls')),
+    # path('api/genres/', include('apps.genres.urls')),
 ]
 
 # Servir arquivos de mídia em desenvolvimento
