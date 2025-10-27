@@ -30,7 +30,8 @@ def api_index(request):
                     "list": f"{base_url}artists/",
                     "detail": f"{base_url}artists/<id>/",
                     "albums": f"{base_url}artists/<id>/albums/",
-                    "album_musics": f"{base_url}artists/albums/<album_id>/musics/"
+                    "album_musics": f"{base_url}artists/albums/<album_id>/musics/",
+                    "musics": f"{base_url}artists/albums/<album_id>/musics/"
                 }
             },
             "playlists": {
@@ -76,7 +77,7 @@ def api_index(request):
             "all_artists": f"{base_url}artists/",
             "artist_detail": f"{base_url}artists/5/",
             "artist_albums": f"{base_url}artists/5/albums/",
-            "album_musics": f"{base_url}artists/albums/1/musics/",
+            "albuns": f"{base_url}artists/albums/1/musics/",
             "all_playlists": f"{base_url}playlists/",
             "featured_playlists": f"{base_url}playlists/?featured=true",
             "playlist_detail": f"{base_url}playlists/1/",
