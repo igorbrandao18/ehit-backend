@@ -3,10 +3,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from django.db.models import Q
-from django.core.cache import cache
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
 from .models import Artist, Album
 from .serializers import ArtistSerializer, ArtistCreateSerializer, AlbumSerializer, AlbumCreateSerializer
 
@@ -24,11 +20,6 @@ class ArtistListView(generics.ListAPIView):
     serializer_class = ArtistSerializer
     pagination_class = StandardResultsSetPagination
     permission_classes = [permissions.AllowAny]
-    
-    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
-    @method_decorator(vary_on_headers('Authorization'))
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
     
     def get_queryset(self):
         """Filtros de busca"""
@@ -56,10 +47,6 @@ class ArtistDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Artist.objects.filter(is_active=True)
     serializer_class = ArtistSerializer
     permission_classes = [permissions.AllowAny]
-    
-    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
 
 
 class ArtistCreateView(generics.CreateAPIView):
@@ -215,10 +202,6 @@ class AlbumListView(generics.ListAPIView):
     pagination_class = StandardResultsSetPagination
     permission_classes = [permissions.AllowAny]
     
-    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-    
     def get_queryset(self):
         """Filtros de busca avançados"""
         queryset = super().get_queryset()
@@ -269,10 +252,6 @@ class AlbumDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Album.objects.filter(is_active=True)
     serializer_class = AlbumSerializer
     permission_classes = [permissions.AllowAny]
-    
-    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
 
 
 class AlbumCreateView(generics.CreateAPIView):
