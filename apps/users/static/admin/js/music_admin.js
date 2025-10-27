@@ -8,11 +8,11 @@
         if (fileInput) {
             // Adicionar indicador visual ao campo de arquivo
             const fileField = fileInput.closest('.form-row');
-            if (fileField) {
+            if (fileField && !document.querySelector('.music-upload-help')) {
                 const helpText = document.createElement('div');
                 helpText.className = 'music-upload-help';
                 helpText.innerHTML = `
-                    <p style="color: #856404; background: #fff3cd; padding: 8px; border-left: 3px solid #ffc107; margin-top: 5px;">
+                    <p>
                         📌 <strong>Limite:</strong> 500MB por arquivo<br>
                         ⏳ <strong>Processamento:</strong> Arquivos grandes podem demorar alguns minutos
                     </p>
@@ -26,46 +26,46 @@
                     const file = e.target.files[0];
                     const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
                     
-                    // Adicionar indicador de progresso
-                    let progressBar = document.querySelector('.music-upload-progress');
-                    if (!progressBar) {
-                        progressBar = document.createElement('div');
-                        progressBar.className = 'music-upload-progress';
-                        progressBar.innerHTML = `
-                            <p><strong>⏳ Upload em progresso...</strong></p>
-                            <p>Arquivo: ${file.name} (${fileSizeMB}MB)</p>
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: 100%;"></div>
-                            </div>
-                            <p style="margin-top: 10px; color: #666;">
-                                Por favor, não feche esta página enquanto o arquivo está sendo processado.
-                            </p>
-                        `;
-                        fileInput.closest('.form-row').appendChild(progressBar);
-                    }
+                    // Remover indicador anterior se existir
+                    let oldProgress = document.querySelector('.music-upload-progress');
+                    if (oldProgress) oldProgress.remove();
                     
-                    // Ativar indicador
+                    // Criar novo indicador de progresso
+                    const progressBar = document.createElement('div');
+                    progressBar.className = 'music-upload-progress';
+                    progressBar.innerHTML = `
+                        <p><strong>⏳ Upload em progresso...</strong></p>
+                        <p>📁 Arquivo: <strong>${file.name}</strong> (${fileSizeMB}MB)</p>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 100%;"></div>
+                        </div>
+                        <p style="margin-top: 12px; font-size: 13px; color: #6b7280;">
+                            🔄 Por favor, aguarde... não feche esta página.
+                        </p>
+                    `;
+                    fileField.appendChild(progressBar);
                     progressBar.classList.add('active');
                 }
             });
             
-            // Mostrar indicador no submit
+            // Mostrar aviso crítico no submit
             const form = fileInput.closest('form');
             if (form) {
                 form.addEventListener('submit', function() {
                     const progressBar = document.querySelector('.music-upload-progress');
                     if (progressBar && fileInput.files.length > 0) {
+                        progressBar.innerHTML = `
+                            <p class="warning-msg">⚠️ CRÍTICO: NÃO FECHE ESTA PÁGINA!</p>
+                            <p><strong>⏳ Upload em progresso...</strong></p>
+                            <p>📁 Arquivo: <strong>${fileInput.files[0].name}</strong></p>
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: 100%;"></div>
+                            </div>
+                            <p style="margin-top: 12px; color: #dc2626; font-weight: 600;">
+                                ❌ Fechar agora pode corromper o arquivo!
+                            </p>
+                        `;
                         progressBar.classList.add('active');
-                        
-                        // Adicionar mensagem de não fechar
-                        const msg = document.createElement('p');
-                        msg.style.cssText = 'background: #f44336; color: white; padding: 15px; margin: 10px 0; border-radius: 5px; text-align: center; font-weight: bold;';
-                        msg.textContent = '⚠️ NÃO FECHE ESTA PÁGINA! O upload está em progresso...';
-                        if (progressBar.querySelector('.warning-msg')) {
-                            progressBar.querySelector('.warning-msg').remove();
-                        }
-                        msg.className = 'warning-msg';
-                        progressBar.insertBefore(msg, progressBar.firstChild);
                     }
                 });
             }
