@@ -30,7 +30,8 @@ class BannerAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Informações', {
-            'fields': ('name', 'image', 'link')
+            'fields': ('name', 'image', 'link'),
+            'description': '📐 Recomendado: Imagem 1920x1080 pixels'
         }),
         ('Controle de Exibição', {
             'fields': ('start_date', 'end_date'),

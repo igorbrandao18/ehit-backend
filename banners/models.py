@@ -1,5 +1,7 @@
 from django.db import models
 from django.utils import timezone
+from django.core.exceptions import ValidationError
+from PIL import Image
 
 
 class Banner(models.Model):
@@ -17,7 +19,7 @@ class Banner(models.Model):
     image = models.ImageField(
         upload_to='banners/',
         verbose_name='Imagem',
-        help_text='Imagem do banner'
+        help_text='Imagem do banner (1920x1080 recomendado)'
     )
     
     link = models.URLField(
@@ -56,6 +58,23 @@ class Banner(models.Model):
     
     def __str__(self):
         return self.name
+    
+    def clean(self):
+        """Valida se a imagem existe"""
+        super().clean()
+        if self.image:
+            try:
+                img = Image.open(self.image)
+                width, height = img.size
+                # Não forçar tamanho exato, mas alertar se muito diferente
+                if width < 500 or height < 300:
+                    raise ValidationError({
+                        'image': 'A imagem deve ter pelo menos 500x300 pixels (recomendado 1920x1080)'
+                    })
+            except Exception as e:
+                raise ValidationError({
+                    'image': f'Erro ao processar imagem: {str(e)}'
+                })
     
     def is_currently_active(self):
         """Verifica se o banner está ativo no momento atual"""
