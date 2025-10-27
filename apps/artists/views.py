@@ -2,7 +2,7 @@ from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from django.db.models import Q
+from django.db.models import Q, Count
 from .models import Artist, Album
 from .serializers import ArtistSerializer, ArtistCreateSerializer, AlbumSerializer, AlbumCreateSerializer
 
@@ -16,7 +16,9 @@ class StandardResultsSetPagination(PageNumberPagination):
 
 class ArtistListView(generics.ListAPIView):
     """Lista de artistas com cache Redis"""
-    queryset = Artist.objects.filter(is_active=True)
+    queryset = Artist.objects.filter(is_active=True).annotate(
+        albums_count=Count('albums', filter=Q(albums__is_active=True))
+    ).filter(albums_count__gt=0)
     serializer_class = ArtistSerializer
     pagination_class = StandardResultsSetPagination
     permission_classes = [permissions.AllowAny]
@@ -24,6 +26,11 @@ class ArtistListView(generics.ListAPIView):
     def get_queryset(self):
         """Filtros de busca"""
         queryset = super().get_queryset()
+        
+        # Apenas artistas com álbuns ativos
+        queryset = queryset.annotate(
+            albums_count=Count('albums', filter=Q(albums__is_active=True))
+        ).filter(albums_count__gt=0)
         
         # Filtro por gênero
         genre = self.request.query_params.get('genre')
