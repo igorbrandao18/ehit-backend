@@ -31,10 +31,16 @@ class Playlist(BaseModel):
         help_text='Se marcado, esta playlist aparecerá em destaque'
     )
     
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name='Ordem',
+        help_text='Ordem de exibição no array (menor número = maior prioridade)'
+    )
+    
     class Meta:
         verbose_name = 'PlayHit'
         verbose_name_plural = 'PlayHits'
-        ordering = ['-created_at']
+        ordering = ['order', '-is_featured', '-created_at']
     
     def __str__(self):
         return self.name

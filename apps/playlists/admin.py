@@ -9,13 +9,15 @@ class PlaylistAdmin(admin.ModelAdmin):
     """Admin para o modelo Playlist"""
     
     list_display = [
-        'id', 'name', 'musics_count', 'is_active', 'is_featured', 
+        'id', 'name', 'musics_count', 'is_active', 'is_featured', 'order',
         'created_at', 'updated_at'
     ]
     
     list_filter = [
         'is_active', 'is_featured', 'created_at', 'updated_at'
     ]
+    
+    list_editable = ['order', 'is_active', 'is_featured']
     
     search_fields = [
         'name'
@@ -30,7 +32,7 @@ class PlaylistAdmin(admin.ModelAdmin):
             'fields': ('id', 'name', 'cover')
         }),
         ('Configurações', {
-            'fields': ('is_active', 'is_featured')
+            'fields': ('is_active', 'is_featured', 'order')
         }),
         ('Músicas', {
             'fields': ('add_music_link', 'musics', 'musics_count'),
