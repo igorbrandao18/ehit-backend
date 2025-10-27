@@ -38,6 +38,16 @@ if not DEBUG:
 
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
 
+# Environment Detection
+ENVIRONMENT = config('ENVIRONMENT', default='development')  # 'development' or 'production'
+
+# Ajustar DEBUG baseado no ambiente
+if ENVIRONMENT == 'development':
+    DEBUG = True
+    print("🔧 Modo DEBUG ativado para desenvolvimento")
+else:
+    DEBUG = config('DEBUG', default=False, cast=bool)
+
 
 # Application definition
 
@@ -105,11 +115,39 @@ WSGI_APPLICATION = 'ehit_backend.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default=config('DATABASE_URL', default='sqlite:///db.sqlite3')
-    )
-}
+USE_DOCKER = config('USE_DOCKER', default=False, cast=bool)
+
+if ENVIRONMENT == 'development':
+    if USE_DOCKER:
+        # Database PostgreSQL via Docker (docker/local)
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.postgresql',
+                'NAME': config('DB_NAME', default='ehit_db'),
+                'USER': config('DB_USER', default='ehit_user'),
+                'PASSWORD': config('DB_PASSWORD', default='ehit_password'),
+                'HOST': config('DB_HOST', default='localhost'),
+                'PORT': config('DB_PORT', default='5433'),  # Porta do docker/local
+            }
+        }
+        print("🔧 Ambiente: DESENVOLVIMENTO - Usando PostgreSQL via Docker")
+    else:
+        # Database SQLite local
+        DATABASES = {
+            'default': {
+                'ENGINE': 'django.db.backends.sqlite3',
+                'NAME': BASE_DIR / 'db.sqlite3',
+            }
+        }
+        print("🔧 Ambiente: DESENVOLVIMENTO - Usando SQLite local")
+else:
+    # Database de produção
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=config('DATABASE_URL', default='sqlite:///db.sqlite3')
+        )
+    }
+    print("🚀 Ambiente: PRODUÇÃO - Usando banco de dados configurado")
 
 
 # Password validation
@@ -172,15 +210,39 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 # Redis Cache Configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+if ENVIRONMENT == 'development':
+    if USE_DOCKER:
+        # Redis via Docker (docker/local)
+        CACHES = {
+            'default': {
+                'BACKEND': 'django_redis.cache.RedisCache',
+                'LOCATION': config('REDIS_URL', default='redis://localhost:6380/0'),
+                'OPTIONS': {
+                    'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                }
+            }
+        }
+        print("🔧 Cache: Usando Redis via Docker (desenvolvimento)")
+    else:
+        # Cache simples em memória para desenvolvimento
+        CACHES = {
+            'default': {
+                'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            }
+        }
+        print("🔧 Cache: Usando memória local (desenvolvimento)")
+else:
+    # Redis para produção
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0'),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            }
         }
     }
-}
+    print("🚀 Cache: Usando Redis (produção)")
 
 # Session Configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
@@ -213,14 +275,24 @@ CORS_ALLOW_CREDENTIALS = True
 
 # CSRF Configuration
 CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://prod.ehitapp.com.br,http://prod.ehitapp.com.br').split(',')
-CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
 CSRF_COOKIE_HTTPONLY = False
 CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Security Settings
-SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+if ENVIRONMENT == 'development':
+    # Configurações de segurança relaxadas para desenvolvimento
+    SECURE_SSL_REDIRECT = False
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    print("🔧 Segurança: Modo relaxado para desenvolvimento")
+else:
+    # Configurações de segurança para produção
+    SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=False, cast=bool)
+    SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
+    CSRF_COOKIE_SECURE = config('CSRF_COOKIE_SECURE', default=False, cast=bool)
+    print("🚀 Segurança: Modo estrito para produção")
+
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE = config('SESSION_COOKIE_SECURE', default=False, cast=bool)
 
 # Advanced Security Headers
 SECURE_HSTS_SECONDS = 31536000  # 1 year

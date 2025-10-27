@@ -41,7 +41,9 @@ class Music(BaseModel):
         verbose_name='Gênero Musical'
     )
     duration = models.PositiveIntegerField(
-        help_text="Duração em segundos",
+        blank=True,
+        null=True,
+        help_text="Duração em segundos (calculada automaticamente)",
         verbose_name='Duração (segundos)'
     )
     file = models.FileField(
@@ -54,11 +56,6 @@ class Music(BaseModel):
         blank=True, 
         null=True,
         verbose_name='Capa'
-    )
-    lyrics = models.TextField(
-        blank=True, 
-        null=True,
-        verbose_name='Letra'
     )
     release_date = models.DateField(
         default=timezone.now,

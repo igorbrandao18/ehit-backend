@@ -148,17 +148,18 @@ class AlbumAdmin(admin.ModelAdmin):
 class MusicAdmin(admin.ModelAdmin):
     """Admin para o modelo Music"""
     
-    list_display = ('title', 'artist', 'album', 'genre', 'duration', 'streams_count', 'downloads_count', 'likes_count', 'is_featured', 'created_at')
+    list_display = ('title', 'artist', 'album', 'genre', 'streams_count', 'downloads_count', 'likes_count', 'is_featured', 'created_at')
     list_filter = ('genre', 'album', 'is_featured', 'is_active', 'created_at', 'release_date')
     search_fields = ('title', 'album__name', 'artist__stage_name')
     ordering = ('-streams_count', '-created_at')
     
     fieldsets = (
         ('Informações Básicas', {
-            'fields': ('artist', 'album', 'title', 'genre', 'duration')
+            'fields': ('artist', 'album', 'title', 'genre'),
+            'description': '💡 O campo Álbum é OPCIONAL. Deixe em branco se a música não faz parte de um álbum.'
         }),
         ('Arquivos', {
-            'fields': ('file', 'cover', 'lyrics')
+            'fields': ('file', 'cover')
         }),
         ('Lançamento', {
             'fields': ('release_date', 'is_featured')
@@ -169,9 +170,15 @@ class MusicAdmin(admin.ModelAdmin):
         ('Status', {
             'fields': ('is_active',)
         }),
+        ('Metadados', {
+            'fields': ('created_at', 'updated_at', 'duration'),
+            'classes': ('collapse',)
+        }),
     )
     
-    readonly_fields = ('streams_count', 'downloads_count', 'likes_count', 'created_at', 'updated_at')
+    readonly_fields = ('streams_count', 'downloads_count', 'likes_count', 'created_at', 'updated_at', 'duration')
+    
+    autocomplete_fields = ['artist', 'album', 'genre']
     
     def get_duration_formatted(self, obj):
         """Retorna duração formatada"""

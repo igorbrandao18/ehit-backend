@@ -17,6 +17,11 @@ services:
     networks:
       - ehit_local_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ehit_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Redis para desenvolvimento local
   redis:
@@ -30,6 +35,11 @@ services:
     networks:
       - ehit_local_network
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_local_data:

@@ -36,24 +36,65 @@ docker-compose -f docker/local/docker-compose.yml logs -f
 Após iniciar os containers, configure seu `.env` local:
 
 ```bash
-# .env para desenvolvimento local
+# .env para desenvolvimento local com Docker
 SECRET_KEY=sua-chave-secreta-local
 DEBUG=True
-DATABASE_URL=postgresql://ehit_user:ehit_password@localhost:5433/ehit_db
+ENVIRONMENT=development
+
+# Ativar o uso do Docker
+USE_DOCKER=True
+
+# Configurações do PostgreSQL (docker/local)
+DB_NAME=ehit_db
+DB_USER=ehit_user
+DB_PASSWORD=ehit_password
+DB_HOST=localhost
+DB_PORT=5433
+
+# Configuração do Redis (docker/local)
 REDIS_URL=redis://localhost:6380/0
+```
+
+### Opção sem Docker (SQLite + LocMemCache)
+Se preferir não usar Docker, simplesmente não defina `USE_DOCKER` ou defina como `False`:
+```bash
+USE_DOCKER=False
+# Ou não defina a variável
 ```
 
 ## 🏃 Executar Django localmente
 
 ```bash
-# Instalar dependências
+# 1. Instalar dependências
 pip install -r requirements.txt
 
-# Executar migrações
+# 2. Executar migrações no PostgreSQL
 python manage.py migrate
 
-# Executar servidor de desenvolvimento
+# 3. Criar superusuário (opcional)
+python manage.py createsuperuser
+
+# 4. Executar servidor de desenvolvimento
 python manage.py runserver
+```
+
+### 🔄 Primeira vez usando Docker?
+
+Se você já tinha dados no SQLite e quer migrar para PostgreSQL:
+
+```bash
+# 1. Backup do SQLite
+cp db.sqlite3 db.sqlite3.backup
+
+# 2. Iniciar Docker
+docker-compose -f docker/local/docker-compose.yml up -d
+
+# 3. Configurar .env com USE_DOCKER=True
+
+# 4. Rodar migrações
+python manage.py migrate
+
+# 5. (Opcional) Carregar dados de fixtures ou scripts
 ```
 
 ## 📊 Portas
@@ -87,3 +128,18 @@ docker-compose -f docker/local/docker-compose.yml down -v
 # Iniciar novamente
 docker-compose -f docker/local/docker-compose.yml up -d
 ```
+
+## ⚡ Resumo: Qual opção usar?
+
+### SQLite (USE_DOCKER=False ou não definido)
+✅ **Melhor para:** Começar rapidamente, testes rápidos, desenvolvimento simples
+- Não precisa de Docker
+- Setup instantâneo
+- Dados ficam no arquivo `db.sqlite3`
+
+### Docker PostgreSQL + Redis (USE_DOCKER=True)
+✅ **Melhor para:** Desenvolvimento real, testar features que precisam PostgreSQL, simular ambiente de produção
+- Ambiente mais próximo da produção
+- PostgreSQL completo com recursos avançados
+- Redis para cache e sessões
+- Precisa do Docker rodando

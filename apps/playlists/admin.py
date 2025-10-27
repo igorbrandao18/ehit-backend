@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.utils.html import format_html
+from django.urls import reverse
 from .models import Playlist
 
 
@@ -20,7 +22,7 @@ class PlaylistAdmin(admin.ModelAdmin):
     ]
     
     readonly_fields = [
-        'id', 'created_at', 'updated_at', 'musics_count'
+        'id', 'created_at', 'updated_at', 'musics_count', 'add_music_link'
     ]
     
     fieldsets = (
@@ -31,8 +33,8 @@ class PlaylistAdmin(admin.ModelAdmin):
             'fields': ('is_active', 'is_featured')
         }),
         ('Músicas', {
-            'fields': ('musics', 'musics_count'),
-            'classes': ('collapse',)
+            'fields': ('add_music_link', 'musics', 'musics_count'),
+            'description': '💡 Dica: Use o botão "Adicionar Música" acima para criar novas músicas. Ou selecione músicas existentes no campo abaixo.'
         }),
         ('Metadados', {
             'fields': ('created_at', 'updated_at'),
@@ -46,6 +48,19 @@ class PlaylistAdmin(admin.ModelAdmin):
         """Contador de músicas"""
         return obj.musics.count()
     musics_count.short_description = 'Nº de Músicas'
+    
+    def add_music_link(self, obj):
+        """Link para adicionar nova música"""
+        if obj.pk:
+            url = reverse('admin:music_music_add')
+            return format_html(
+                '<a href="{}" target="_blank" class="addlink" style="display: inline-block; '
+                'padding: 5px 10px; background: #417690; color: white; text-decoration: none; '
+                'border-radius: 3px; font-weight: bold;">➕ Adicionar Nova Música</a>',
+                url
+            )
+        return "Salve a playlist primeiro para adicionar músicas"
+    add_music_link.short_description = "Ações"
     
     def get_queryset(self, request):
         """Otimizar consultas"""
