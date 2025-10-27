@@ -29,14 +29,7 @@ def api_index(request):
                 "endpoints": {
                     "list": f"{base_url}artists/",
                     "detail": f"{base_url}artists/<id>/",
-                    "albums": f"{base_url}artists/<id>/albums/"
-                }
-            },
-            "albums": {
-                "url": f"{base_url}artists/albums/",
-                "description": "Músicas dos álbuns",
-                "methods": ["GET"],
-                "endpoints": {
+                    "albums": f"{base_url}artists/<id>/albums/",
                     "album_musics": f"{base_url}artists/albums/<album_id>/musics/"
                 }
             },
@@ -76,10 +69,6 @@ def api_index(request):
             },
             "banners": {
                 "ordering": "Ordenação (default: -start_date)",
-                "page_size": "Itens por página (default: 20)"
-            },
-            "albums": {
-                "page": "Número da página (default: 1)",
                 "page_size": "Itens por página (default: 20)"
             }
         },
