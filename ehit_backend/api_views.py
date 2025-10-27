@@ -41,6 +41,17 @@ def api_index(request):
                     "detail": f"{base_url}playlists/<id>/",
                     "featured_filter": f"{base_url}playlists/?featured=true"
                 }
+            },
+            "banners": {
+                "url": f"{base_url}banners/",
+                "description": "Banners publicitários",
+                "methods": ["GET"],
+                "endpoints": {
+                    "list": f"{base_url}banners/",
+                    "detail": f"{base_url}banners/<id>/",
+                    "all_banners": f"{base_url}banners/all/",
+                    "active_banners": f"{base_url}banners/active/"
+                }
             }
         },
         "query_parameters": {
@@ -54,6 +65,10 @@ def api_index(request):
                 "search": "Buscar por nome da playlist",
                 "ordering": "Ordenação (default: -created_at)",
                 "page_size": "Itens por página (default: 20)"
+            },
+            "banners": {
+                "ordering": "Ordenação (default: -start_date)",
+                "page_size": "Itens por página (default: 20)"
             }
         },
         "examples": {
@@ -62,7 +77,10 @@ def api_index(request):
             "artist_albums": f"{base_url}artists/5/albums/",
             "all_playlists": f"{base_url}playlists/",
             "featured_playlists": f"{base_url}playlists/?featured=true",
-            "playlist_detail": f"{base_url}playlists/1/"
+            "playlist_detail": f"{base_url}playlists/1/",
+            "active_banners": f"{base_url}banners/",
+            "all_banners": f"{base_url}banners/all/",
+            "banner_detail": f"{base_url}banners/1/"
         }
     }
     
