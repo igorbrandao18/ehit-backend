@@ -25,11 +25,6 @@ class PlaylistListView(generics.ListAPIView):
     pagination_class = StandardResultsSetPagination
     permission_classes = [permissions.AllowAny]
     
-    @method_decorator(cache_page(60 * 15))  # Cache por 15 minutos
-    @method_decorator(vary_on_headers('Authorization'))
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
-    
     def get_queryset(self):
         """Filtros de busca com cache"""
         queryset = super().get_queryset()
