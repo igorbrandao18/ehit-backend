@@ -148,13 +148,20 @@ class MusicAdmin(admin.ModelAdmin):
     search_fields = ('title', 'album__name', 'artist__stage_name')
     ordering = ('-streams_count', '-created_at')
     
+    class Media:
+        css = {
+            'all': ('admin/css/music_admin.css',)
+        }
+        js = ('admin/js/music_admin.js',)
+    
     fieldsets = (
         ('Informações Básicas', {
             'fields': ('artist', 'album', 'title', 'genre'),
             'description': '💡 O campo Álbum é OPCIONAL. Deixe em branco se a música não faz parte de um álbum.'
         }),
         ('Arquivos', {
-            'fields': ('file', 'cover')
+            'fields': ('file', 'cover'),
+            'description': '🎵 Limite de upload: 500MB por arquivo. Arquivos grandes serão processados automaticamente.'
         }),
         ('Lançamento', {
             'fields': ('release_date', 'is_featured')

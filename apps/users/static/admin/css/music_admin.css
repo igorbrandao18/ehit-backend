@@ -1,0 +1,55 @@
+/* Estilos para o admin de Music - indicadores de upload */
+#music_form .field-file .help {
+    display: block;
+    margin-top: 5px;
+    padding: 10px;
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    color: #856404;
+    font-size: 12px;
+}
+
+#music_form .field-file::after {
+    content: "⏳ Arquivos grandes podem demorar alguns minutos para serem processados...";
+    display: block;
+    margin-top: 5px;
+    padding: 10px;
+    background: #e7f3ff;
+    border-left: 4px solid #2196F3;
+    color: #0d47a1;
+    font-size: 12px;
+}
+
+/* Indicador de upload em progresso */
+.music-upload-progress {
+    display: none;
+    padding: 15px;
+    background: #f0f8ff;
+    border: 1px solid #2196F3;
+    margin: 10px 0;
+    border-radius: 5px;
+}
+
+.music-upload-progress.active {
+    display: block;
+}
+
+.music-upload-progress .progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #e0e0e0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.music-upload-progress .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2196F3, #1976D2);
+    transition: width 0.3s ease;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}

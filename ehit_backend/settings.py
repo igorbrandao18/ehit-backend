@@ -191,8 +191,8 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = config('MEDIA_ROOT', default=BASE_DIR / 'media')
 
 # File Upload Settings
-FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024  # 50MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 500 * 1024 * 1024  # 500MB (for music files)
+DATA_UPLOAD_MAX_MEMORY_SIZE = 500 * 1024 * 1024  # 500MB (for music files)
 FILE_UPLOAD_PERMISSIONS = 0o644
 
 # Default primary key field type
