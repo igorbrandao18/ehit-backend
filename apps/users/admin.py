@@ -93,19 +93,14 @@ class AlbumAdmin(admin.ModelAdmin):
     readonly_fields = ('created_at', 'updated_at')
     
     class MusicInline(admin.TabularInline):
-        """Inline para músicas no admin de álbuns - simplificado"""
+        """Inline para músicas no admin de álbuns - igual playlists"""
         model = Music
-        extra = 1
-        fields = ('title', 'file', 'is_active')  # Artista vem do álbum automaticamente
+        extra = 0  # Não criar linha vazia automaticamente
+        fields = ('title', 'file', 'is_active')  # Simplificado
         verbose_name = "Música"
         verbose_name_plural = "Músicas do Álbum"
         can_delete = True
         show_change_link = True
-        
-        def get_queryset(self, request):
-            """Filtrar músicas do artista do álbum quando editando álbum existente"""
-            qs = super().get_queryset(request)
-            return qs
     
     inlines = [MusicInline]
     
