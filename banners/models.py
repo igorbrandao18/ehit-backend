@@ -14,6 +14,12 @@ class Banner(models.Model):
         help_text='Nome do banner'
     )
     
+    image = models.ImageField(
+        upload_to='banners/',
+        verbose_name='Imagem',
+        help_text='Imagem do banner'
+    )
+    
     link = models.URLField(
         blank=True,
         null=True,
