@@ -31,15 +31,7 @@ class ArtistListView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
     
     def get_queryset(self):
-        """Filtros de busca com cache"""
-        # Criar chave de cache baseada nos parâmetros
-        cache_key = f"artists_list_{self.request.query_params.get('genre', '')}_{self.request.query_params.get('search', '')}_{self.request.query_params.get('ordering', '-created_at')}"
-        
-        # Tentar buscar do cache primeiro
-        cached_queryset = cache.get(cache_key)
-        if cached_queryset is not None:
-            return cached_queryset
-        
+        """Filtros de busca"""
         queryset = super().get_queryset()
         
         # Filtro por gênero
@@ -55,9 +47,6 @@ class ArtistListView(generics.ListAPIView):
         # Ordenação
         ordering = self.request.query_params.get('ordering', '-created_at')
         queryset = queryset.order_by(ordering)
-        
-        # Cache por 10 minutos
-        cache.set(cache_key, queryset, 60 * 10)
         
         return queryset
 
@@ -82,16 +71,8 @@ class ArtistCreateView(generics.CreateAPIView):
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-@cache_page(60 * 20)  # Cache por 20 minutos
 def active_artists_view(request):
-    """Artistas ativos com cache Redis"""
-    cache_key = "active_artists"
-    
-    # Tentar buscar do cache primeiro
-    cached_data = cache.get(cache_key)
-    if cached_data is not None:
-        return Response(cached_data)
-    
+    """Artistas ativos"""
     artists = Artist.objects.filter(
         is_active=True
     ).order_by('-created_at')
@@ -103,23 +84,13 @@ def active_artists_view(request):
         'count': len(serializer.data)
     }
     
-    # Cache por 15 minutos
-    cache.set(cache_key, response_data, 60 * 15)
-    
     return Response(response_data)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def artist_complete_view(request, pk):
-    """Artista completo com álbuns e músicas - cache Redis"""
-    cache_key = f"artist_complete_{pk}"
-    
-    # Tentar buscar do cache primeiro
-    cached_data = cache.get(cache_key)
-    if cached_data is not None:
-        return Response(cached_data)
-    
+    """Artista completo com álbuns e músicas"""
     try:
         artist = Artist.objects.get(pk=pk, is_active=True)
     except Artist.DoesNotExist:
@@ -148,24 +119,13 @@ def artist_complete_view(request, pk):
         'musics_count': musics.count()
     }
     
-    # Cache por 20 minutos
-    cache.set(cache_key, response_data, 60 * 20)
-    
     return Response(response_data)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-@cache_page(60 * 20)  # Cache por 20 minutos
 def artist_albums_view(request, pk):
-    """Álbuns do artista com cache Redis"""
-    cache_key = f"artist_albums_{pk}"
-    
-    # Tentar buscar do cache primeiro
-    cached_data = cache.get(cache_key)
-    if cached_data is not None:
-        return Response(cached_data)
-    
+    """Álbuns do artista"""
     try:
         artist = Artist.objects.get(pk=pk, is_active=True)
     except Artist.DoesNotExist:
@@ -187,9 +147,6 @@ def artist_albums_view(request, pk):
         'albums': albums_serializer.data,
         'count': albums.count()
     }
-    
-    # Cache por 15 minutos
-    cache.set(cache_key, response_data, 60 * 15)
     
     return Response(response_data)
 
@@ -263,15 +220,7 @@ class AlbumListView(generics.ListAPIView):
         return super().get(request, *args, **kwargs)
     
     def get_queryset(self):
-        """Filtros de busca avançados com cache"""
-        # Criar chave de cache baseada nos parâmetros
-        cache_key = f"albums_list_{self.request.query_params.get('artist', '')}_{self.request.query_params.get('featured', '')}_{self.request.query_params.get('search', '')}_{self.request.query_params.get('genre', '')}_{self.request.query_params.get('ordering', '-featured')}"
-        
-        # Tentar buscar do cache primeiro
-        cached_queryset = cache.get(cache_key)
-        if cached_queryset is not None:
-            return cached_queryset
-        
+        """Filtros de busca avançados"""
         queryset = super().get_queryset()
         
         # Filtro por artista (ID)
@@ -312,9 +261,6 @@ class AlbumListView(generics.ListAPIView):
             # Ordenação padrão: destaque primeiro, depois data de lançamento
             queryset = queryset.order_by('-featured', '-release_date', '-created_at')
         
-        # Cache por 10 minutos
-        cache.set(cache_key, queryset, 60 * 10)
-        
         return queryset
 
 
@@ -338,16 +284,8 @@ class AlbumCreateView(generics.CreateAPIView):
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-@cache_page(60 * 20)  # Cache por 20 minutos
 def featured_albums_view(request):
-    """Álbuns em destaque com cache Redis"""
-    cache_key = "featured_albums"
-    
-    # Tentar buscar do cache primeiro
-    cached_data = cache.get(cache_key)
-    if cached_data is not None:
-        return Response(cached_data)
-    
+    """Álbuns em destaque"""
     albums = Album.objects.filter(
         is_active=True,
         featured=True
@@ -360,23 +298,13 @@ def featured_albums_view(request):
         'count': len(serializer.data)
     }
     
-    # Cache por 15 minutos
-    cache.set(cache_key, response_data, 60 * 15)
-    
     return Response(response_data)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def album_musics_view(request, pk):
-    """Músicas do álbum com cache Redis"""
-    cache_key = f"album_musics_{pk}_{request.query_params.get('page', 1)}_{request.query_params.get('page_size', 20)}"
-    
-    # Tentar buscar do cache primeiro
-    cached_data = cache.get(cache_key)
-    if cached_data is not None:
-        return Response(cached_data)
-    
+    """Músicas do álbum"""
     try:
         album = Album.objects.get(pk=pk, is_active=True)
     except Album.DoesNotExist:
@@ -406,8 +334,5 @@ def album_musics_view(request, pk):
         'page_size': page_size,
         'total_pages': (musics.count() + page_size - 1) // page_size
     }
-    
-    # Cache por 10 minutos
-    cache.set(cache_key, response_data, 60 * 10)
     
     return Response(response_data)
