@@ -222,7 +222,6 @@ if ENVIRONMENT == 'development':
                     'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
                     'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
                     'COMPRESS_MIN_LENGTH': 100,
-                    'PARSER_CLASS': 'redis.connection.HiredisParser',
                 },
                 'KEY_PREFIX': 'ehit_dev',
                 'VERSION': config('CACHE_VERSION', default='1'),
@@ -253,7 +252,6 @@ else:
                 'SOCKET_CONNECT_TIMEOUT': 5,
                 'SOCKET_TIMEOUT': 5,
                 'RETRY_ON_TIMEOUT': True,
-                'PARSER_CLASS': 'redis.connection.HiredisParser',
                 'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
                 'CONNECTION_POOL_KWARGS': {
                     'max_connections': 50,
