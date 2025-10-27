@@ -29,9 +29,8 @@ def api_index(request):
                 "endpoints": {
                     "list": f"{base_url}artists/",
                     "detail": f"{base_url}artists/<id>/",
-                    "albuns": f"{base_url}artists/<id>/albums/",
-                    "músicas_do_álbum": f"{base_url}artists/albums/<album_id>/musics/",
-                    "musics": f"{base_url}artists/albums/<album_id>/musics/"
+                    "albuns_do_artista": f"{base_url}artists/<id>/albums/",
+                    "músicas_do_álbum": f"{base_url}artists/albums/<album_id>/musics/"
                 }
             },
             "playlists": {
