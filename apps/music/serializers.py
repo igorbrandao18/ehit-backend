@@ -36,7 +36,7 @@ class MusicSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'artist', 'artist_name', 'album', 'album_name', 'album_featured', 'album_data',
             'title', 'genre', 'genre_data', 'duration', 'duration_formatted', 'file', 'file_size_mb',
-            'cover', 'lyrics', 'release_date', 'streams_count', 'downloads_count', 'likes_count',
+            'cover', 'release_date', 'streams_count', 'downloads_count', 'likes_count',
             'is_featured', 'is_popular', 'is_trending', 'stream_url',
             'download_url', 'created_at', 'updated_at', 'is_active'
         ]
@@ -71,7 +71,7 @@ class MusicCreateSerializer(serializers.ModelSerializer):
         model = Music
         fields = [
             'artist', 'album', 'title', 'genre', 'duration',
-            'file', 'cover', 'lyrics', 'release_date', 'is_featured'
+            'file', 'cover', 'release_date', 'is_featured'
         ]
         extra_kwargs = {
             'file': {'required': False, 'allow_null': True}

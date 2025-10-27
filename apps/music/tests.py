@@ -45,7 +45,7 @@ class MusicAPITestCase(APITestCase):
             is_active=True
         )
         
-        # Criar música
+        # Criar música (duration agora é opcional)
         self.music = Music.objects.create(
             artist=self.artist,
             album=self.album,
@@ -391,3 +391,27 @@ class MusicModelTestCase(TestCase):
         )
         
         self.assertTrue(trending_music.is_trending)
+    
+    def test_music_without_duration(self):
+        """Testa criação de música sem duration"""
+        music = Music.objects.create(
+            artist=self.artist,
+            album=self.album,
+            title='Track Without Duration',
+            is_active=True
+        )
+        
+        self.assertEqual(music.title, 'Track Without Duration')
+        self.assertIsNone(music.duration)
+    
+    def test_music_without_album(self):
+        """Testa criação de música sem álbum"""
+        music = Music.objects.create(
+            artist=self.artist,
+            title='Single Track',
+            duration=180,
+            is_active=True
+        )
+        
+        self.assertEqual(music.title, 'Single Track')
+        self.assertIsNone(music.album)
