@@ -61,6 +61,7 @@ services:
       - "3030:3030"
     environment:
       - DEBUG=False
+      - ENVIRONMENT=production
       - SECRET_KEY=django-insecure-production-key-change-this-in-production
       - DATABASE_URL=postgresql://ehit_user:ehit_password@db:5432/ehit_db
       - REDIS_URL=redis://redis:6379/0
