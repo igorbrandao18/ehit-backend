@@ -29,8 +29,8 @@ def api_index(request):
                 "endpoints": {
                     "list": f"{base_url}artists/",
                     "detail": f"{base_url}artists/<id>/",
-                    "albums": f"{base_url}artists/<id>/albums/",
-                    "album_musics": f"{base_url}artists/albums/<album_id>/musics/",
+                    "albuns": f"{base_url}artists/<id>/albums/",
+                    "músicas_do_álbum": f"{base_url}artists/albums/<album_id>/musics/",
                     "musics": f"{base_url}artists/albums/<album_id>/musics/"
                 }
             },
@@ -76,8 +76,8 @@ def api_index(request):
         "examples": {
             "all_artists": f"{base_url}artists/",
             "artist_detail": f"{base_url}artists/5/",
-            "artist_albums": f"{base_url}artists/5/albums/",
-            "albuns": f"{base_url}artists/albums/1/musics/",
+            "álbuns_do_artista": f"{base_url}artists/5/albums/",
+            "músicas_do_álbum": f"{base_url}artists/albums/1/musics/",
             "all_playlists": f"{base_url}playlists/",
             "featured_playlists": f"{base_url}playlists/?featured=true",
             "playlist_detail": f"{base_url}playlists/1/",
