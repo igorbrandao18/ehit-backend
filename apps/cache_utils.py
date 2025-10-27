@@ -2,11 +2,26 @@
 Utilitários de cache Redis para invalidação automática
 """
 from django.core.cache import cache
+from django_redis import get_redis_connection
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from .artists.models import Artist, Album
 from .music.models import Music
 from .playlists.models import Playlist
+
+
+def delete_cache_pattern(pattern):
+    """Deleta todas as chaves que correspondem ao padrão especificado"""
+    try:
+        conn = get_redis_connection("default")
+        keys = conn.keys(pattern)
+        if keys:
+            conn.delete(*keys)
+            return len(keys)
+        return 0
+    except Exception as e:
+        print(f"Erro ao deletar cache pattern {pattern}: {e}")
+        return 0
 
 
 def invalidate_artist_cache(artist_id=None):
@@ -15,14 +30,14 @@ def invalidate_artist_cache(artist_id=None):
         # Cache específico do artista
         cache.delete(f"artist_complete_{artist_id}")
         cache.delete(f"artist_with_musics_{artist_id}")
+        cache.delete(f"artist_albums_{artist_id}")
     
-    # Cache geral de artistas
-    cache.delete_many([
-        "active_artists",
-        "artists_list_",
-        "featured_albums",
-        "albums_list_",
-    ])
+    # Cache geral de artistas usando pattern matching
+    delete_cache_pattern("artist_complete_*")
+    delete_cache_pattern("artist_with_musics_*")
+    delete_cache_pattern("artist_albums_*")
+    delete_cache_pattern("active_artists")
+    delete_cache_pattern("artists_list_*")
 
 
 def invalidate_album_cache(album_id=None, artist_id=None):
@@ -33,11 +48,10 @@ def invalidate_album_cache(album_id=None, artist_id=None):
     if artist_id:
         invalidate_artist_cache(artist_id)
     
-    # Cache geral de álbuns
-    cache.delete_many([
-        "featured_albums",
-        "albums_list_",
-    ])
+    # Cache geral de álbuns usando pattern matching
+    delete_cache_pattern("album_musics_*")
+    delete_cache_pattern("featured_albums")
+    delete_cache_pattern("albums_list_*")
 
 
 def invalidate_music_cache(music_id=None, artist_id=None, album_id=None):
@@ -51,14 +65,13 @@ def invalidate_music_cache(music_id=None, artist_id=None, album_id=None):
     if album_id:
         invalidate_album_cache(album_id)
     
-    # Cache geral de músicas
-    cache.delete_many([
-        "trending_music",
-        "popular_music",
-        "featured_music",
-        "musics_list_",
-        "music_autocomplete_",
-    ])
+    # Cache geral de músicas usando pattern matching
+    delete_cache_pattern("music_stats_*")
+    delete_cache_pattern("trending_music")
+    delete_cache_pattern("popular_music")
+    delete_cache_pattern("featured_music")
+    delete_cache_pattern("musics_list_*")
+    delete_cache_pattern("music_autocomplete_*")
 
 
 def invalidate_playlist_cache(playlist_id=None):
@@ -66,11 +79,10 @@ def invalidate_playlist_cache(playlist_id=None):
     if playlist_id:
         cache.delete(f"playlist_detail_{playlist_id}")
     
-    # Cache geral de playlists
-    cache.delete_many([
-        "active_playhits",
-        "playlists_list_",
-    ])
+    # Cache geral de playlists usando pattern matching
+    delete_cache_pattern("playlist_detail_*")
+    delete_cache_pattern("active_playhits")
+    delete_cache_pattern("playlists_list_*")
 
 
 # =============================================================================
@@ -182,12 +194,21 @@ def warm_up_cache():
 
 
 def get_cache_stats():
-    """Obter estatísticas do cache"""
+    """Obter estatísticas detalhadas do cache Redis"""
     try:
-        # Informações básicas do cache
-        info = {
-            'cache_backend': 'django_redis.cache.RedisCache',
+        conn = get_redis_connection("default")
+        
+        # Informações do Redis
+        info = conn.info()
+        
+        # Estatísticas úteis
+        stats = {
             'status': 'Ativo',
+            'connected_clients': info.get('connected_clients', 0),
+            'used_memory_human': info.get('used_memory_human', 'N/A'),
+            'total_keys': conn.dbsize(),
+            'hit_rate': 'N/A',
+            'compression_enabled': True,
         }
         
         # Teste básico de conectividade
@@ -198,13 +219,30 @@ def get_cache_stats():
         cached_value = cache.get(test_key)
         
         if cached_value == test_value:
-            info['connectivity'] = 'OK'
+            stats['connectivity'] = 'OK'
         else:
-            info['connectivity'] = 'FALHOU'
+            stats['connectivity'] = 'FALHOU'
         
         cache.delete(test_key)
         
-        return info
+        return stats
         
     except Exception as e:
         return {'error': str(e), 'status': 'Inativo'}
+
+
+def get_cache_keys_count(prefix=''):
+    """Contar chaves no cache com prefixo específico"""
+    try:
+        conn = get_redis_connection("default")
+        pattern = f"*{prefix}*"
+        keys = conn.keys(pattern)
+        return len(keys)
+    except Exception as e:
+        print(f"Erro ao contar keys: {e}")
+        return 0
+
+
+def clear_cache_by_prefix(prefix):
+    """Limpar cache por prefixo"""
+    return delete_cache_pattern(f"{prefix}*")

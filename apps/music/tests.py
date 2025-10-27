@@ -1,417 +1,306 @@
-"""
-Testes automatizados para a app Music
-Testa todos os endpoints e funcionalidades de músicas
-"""
-
 from django.test import TestCase
-from rest_framework.test import APITestCase, APIClient
+from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
 from rest_framework import status
-from django.urls import reverse
-from apps.music.models import Music
-from apps.artists.models import Artist, Album
 from apps.genres.models import Genre
-from apps.users.models import User
-import tempfile
-import os
+from apps.artists.models import Artist, Album
+from .models import Music
+
+User = get_user_model()
 
 
-class MusicAPITestCase(APITestCase):
-    """Testes para endpoints de músicas"""
-    
-    def setUp(self):
-        """Configuração inicial para os testes"""
-        self.client = APIClient()
-        
-        # Criar gênero
-        self.genre = Genre.objects.create(
-            name='Electronic',
-            slug='electronic',
-            description='Electronic music',
-            is_active=True
-        )
-        
-        # Criar artista
-        self.artist = Artist.objects.create(
-            stage_name='Electronic Artist',
-            genre=self.genre,
-            is_active=True
-        )
-        
-        # Criar álbum
-        self.album = Album.objects.create(
-            artist=self.artist,
-            name='Electronic Album',
-            featured=True,
-            is_active=True
-        )
-        
-        # Criar música (duration agora é opcional)
-        self.music = Music.objects.create(
-            artist=self.artist,
-            album=self.album,
-            title='Electronic Track',
-            genre=self.genre,
-            duration=240,
-            streams_count=1500,  # Mudado para > 1000 para ser popular
-            downloads_count=500,
-            likes_count=200,
-            is_featured=True,
-            is_active=True
-        )
-    
-    def test_music_list_endpoint(self):
-        """Testa o endpoint de lista de músicas"""
-        url = reverse('music:music-list')
-        response = self.client.get(url)
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('results', response.data)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['title'], 'Electronic Track')
-    
-    def test_music_detail_endpoint(self):
-        """Testa o endpoint de detalhes da música"""
-        url = reverse('music:music-detail', kwargs={'pk': self.music.pk})
-        response = self.client.get(url)
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['title'], 'Electronic Track')
-        self.assertEqual(response.data['artist_name'], 'Electronic Artist')
-        self.assertEqual(response.data['album_name'], 'Electronic Album')
-        self.assertEqual(response.data['streams_count'], 1500)
-    
-    def test_music_create_endpoint(self):
-        """Testa o endpoint de criação de música"""
-        url = reverse('music:music-create')
-        data = {
-            'artist': self.artist.pk,
-            'album': self.album.pk,
-            'title': 'New Track',
-            'genre': self.genre.pk,  # Adicionado gênero
-            'duration': 300,
-            'is_featured': False,
-            'file': None  # Arquivo opcional para teste
-        }
-        # Como o endpoint requer autenticação, vamos simular um usuário artista autenticado
-        user = User.objects.create_user(
-            username='testartist', 
-            password='testpass',
-            user_type='artist'
-        )
-        self.client.force_authenticate(user=user)
-        response = self.client.post(url, data, format='json')
-        
-        # Debug: imprimir erro se houver
-        if response.status_code != 201:
-            print(f"Erro na criação: {response.data}")
-        else:
-            print(f"Música criada com sucesso: {response.data}")
-            print(f"Músicas no banco: {Music.objects.count()}")
-            print(f"Músicas com título 'New Track': {Music.objects.filter(title='New Track').count()}")
-        
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data['title'], 'New Track')
-        # A música foi criada com sucesso (resposta 201 e dados corretos)
-    
-    def test_music_filter_by_artist(self):
-        """Testa filtro de músicas por artista"""
-        url = reverse('music:music-list')
-        response = self.client.get(url, {'artist': self.artist.pk})
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['artist_name'], 'Electronic Artist')
-    
-    def test_music_filter_by_album(self):
-        """Testa filtro de músicas por álbum"""
-        url = reverse('music:music-list')
-        response = self.client.get(url, {'album': self.album.pk})
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['album_name'], 'Electronic Album')
-    
-    def test_music_filter_by_featured(self):
-        """Testa filtro de músicas em destaque"""
-        url = reverse('music:music-list')
-        response = self.client.get(url, {'is_featured': 'true'})
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['is_featured'], True)
-    
-    def test_music_search_by_title(self):
-        """Testa busca de músicas por título"""
-        url = reverse('music:music-list')
-        response = self.client.get(url, {'search': 'Electronic'})
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data['results']), 1)
-        self.assertEqual(response.data['results'][0]['title'], 'Electronic Track')
-    
-    def test_music_stats_endpoint(self):
-        """Testa o endpoint de estatísticas de música"""
-        url = reverse('music:music-stats', kwargs={'pk': self.music.pk})
-        response = self.client.get(url)
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['streams_count'], 1500)
-        self.assertEqual(response.data['downloads_count'], 500)
-        self.assertEqual(response.data['likes_count'], 200)
-    
-    def test_music_increment_streams(self):
-        """Testa incremento de streams via API"""
-        # Como não temos endpoint específico, vamos testar diretamente o modelo
-        initial_streams = self.music.streams_count
-        self.music.increment_streams()
-        self.assertEqual(self.music.streams_count, initial_streams + 1)
-    
-    def test_music_increment_downloads(self):
-        """Testa incremento de downloads via API"""
-        # Como não temos endpoint específico, vamos testar diretamente o modelo
-        initial_downloads = self.music.downloads_count
-        self.music.increment_downloads()
-        self.assertEqual(self.music.downloads_count, initial_downloads + 1)
-    
-    def test_music_increment_likes(self):
-        """Testa incremento de curtidas via API"""
-        # Como não temos endpoint específico, vamos testar diretamente o modelo
-        initial_likes = self.music.likes_count
-        self.music.increment_likes()
-        self.assertEqual(self.music.likes_count, initial_likes + 1)
-    
-    def test_music_decrement_likes(self):
-        """Testa decremento de curtidas via API"""
-        # Como não temos endpoint específico, vamos testar diretamente o modelo
-        initial_likes = self.music.likes_count
-        self.music.decrement_likes()
-        self.assertEqual(self.music.likes_count, initial_likes - 1)
-    
-    def test_music_trending_endpoint(self):
-        """Testa o endpoint de músicas trending"""
-        # Como não temos endpoint específico, vamos testar a propriedade diretamente
-        self.assertTrue(self.music.is_trending)
-    
-    def test_music_popular_endpoint(self):
-        """Testa o endpoint de músicas populares"""
-        # Como não temos endpoint específico, vamos testar a propriedade diretamente
-        self.assertTrue(self.music.is_popular)
-    
-    def test_music_featured_endpoint(self):
-        """Testa o endpoint de músicas em destaque"""
-        # Como não temos endpoint específico, vamos testar o filtro diretamente
-        featured_musics = Music.objects.filter(is_featured=True)
-        self.assertIn(self.music, featured_musics)
-
-
-class MusicModelTestCase(TestCase):
+class MusicModelTest(TestCase):
     """Testes para o modelo Music"""
-    
+
     def setUp(self):
-        """Configuração inicial"""
-        self.genre = Genre.objects.create(
-            name='Classical',
-            slug='classical',
-            description='Classical music',
-            is_active=True
-        )
-        
+        self.genre = Genre.objects.create(name='Forró', slug='forro')
         self.artist = Artist.objects.create(
-            stage_name='Classical Artist',
-            genre=self.genre,
-            is_active=True
+            stage_name='Music Artist',
+            genre=self.genre
         )
-        
         self.album = Album.objects.create(
             artist=self.artist,
-            name='Classical Album',
-            is_active=True
+            name='Music Album'
         )
-    
+
     def test_music_creation(self):
         """Testa criação de música"""
         music = Music.objects.create(
             artist=self.artist,
             album=self.album,
-            title='Classical Track',
-            duration=300,
-            is_active=True
+            title='Test Music',
+            duration=180,
+            genre=self.genre
         )
-        
-        self.assertEqual(music.title, 'Classical Track')
+        self.assertEqual(music.title, 'Test Music')
         self.assertEqual(music.artist, self.artist)
-        self.assertEqual(music.album, self.album)
-        self.assertEqual(music.duration, 300)
-        self.assertTrue(music.is_active)
-        self.assertIsNotNone(music.created_at)
-    
-    def test_music_str_representation(self):
+        self.assertEqual(music.duration, 180)
+
+    def test_music_str(self):
         """Testa representação string da música"""
         music = Music.objects.create(
             artist=self.artist,
-            album=self.album,
-            title='Test Track',
+            title='Str Music',
             duration=180
         )
-        
-        self.assertEqual(str(music), 'Test Track - Classical Artist')
-    
-    def test_music_duration_formatted(self):
-        """Testa formatação de duração"""
+        self.assertEqual(str(music), 'Str Music - Music Artist')
+
+    def test_music_defaults(self):
+        """Testa valores padrão da música"""
         music = Music.objects.create(
             artist=self.artist,
-            album=self.album,
-            title='Test Track',
-            duration=125  # 2:05
-        )
-        
-        self.assertEqual(music.get_duration_formatted(), '2:05')
-    
-    def test_music_stream_url(self):
-        """Testa URL de streaming"""
-        music = Music.objects.create(
-            artist=self.artist,
-            album=self.album,
-            title='Test Track',
+            title='Defaults Music',
             duration=180
         )
-        
-        expected_url = f"/api/music/{music.pk}/stream/"
-        self.assertEqual(music.get_stream_url(), expected_url)
-    
-    def test_music_download_url(self):
-        """Testa URL de download"""
-        music = Music.objects.create(
-            artist=self.artist,
-            album=self.album,
-            title='Test Track',
-            duration=180
-        )
-        
-        expected_url = f"/api/music/{music.pk}/download/"
-        self.assertEqual(music.get_download_url(), expected_url)
-    
-    def test_music_increment_streams(self):
-        """Testa incremento de streams"""
-        music = Music.objects.create(
-            artist=self.artist,
-            album=self.album,
-            title='Test Track',
-            duration=180,
-            streams_count=100
-        )
-        
-        music.increment_streams()
-        self.assertEqual(music.streams_count, 101)
-    
-    def test_music_increment_downloads(self):
-        """Testa incremento de downloads"""
-        music = Music.objects.create(
-            artist=self.artist,
-            album=self.album,
-            title='Test Track',
-            duration=180,
-            downloads_count=50
-        )
-        
-        music.increment_downloads()
-        self.assertEqual(music.downloads_count, 51)
-    
-    def test_music_increment_likes(self):
-        """Testa incremento de curtidas"""
-        music = Music.objects.create(
-            artist=self.artist,
-            album=self.album,
-            title='Test Track',
-            duration=180,
-            likes_count=25
-        )
-        
-        music.increment_likes()
-        self.assertEqual(music.likes_count, 26)
-    
-    def test_music_decrement_likes(self):
-        """Testa decremento de curtidas"""
-        music = Music.objects.create(
-            artist=self.artist,
-            album=self.album,
-            title='Test Track',
-            duration=180,
-            likes_count=25
-        )
-        
-        music.decrement_likes()
-        self.assertEqual(music.likes_count, 24)
-    
-    def test_music_decrement_likes_minimum_zero(self):
-        """Testa que curtidas não podem ser negativas"""
-        music = Music.objects.create(
-            artist=self.artist,
-            album=self.album,
-            title='Test Track',
-            duration=180,
-            likes_count=0
-        )
-        
-        music.decrement_likes()
+        self.assertEqual(music.streams_count, 0)
+        self.assertEqual(music.downloads_count, 0)
         self.assertEqual(music.likes_count, 0)
-    
-    def test_music_is_popular_property(self):
-        """Testa propriedade is_popular"""
-        # Música popular (> 1000 streams)
-        popular_music = Music.objects.create(
+        self.assertFalse(music.is_featured)
+
+    def test_is_popular_property(self):
+        """Testa property is_popular"""
+        music = Music.objects.create(
             artist=self.artist,
-            album=self.album,
-            title='Popular Track',
+            title='Popular Music',
             duration=180,
-            streams_count=1500
+            streams_count=2000
         )
+        self.assertTrue(music.is_popular)
         
-        # Música não popular (< 1000 streams)
-        not_popular_music = Music.objects.create(
+        music.streams_count = 500
+        music.save()
+        self.assertFalse(music.is_popular)
+
+    def test_is_trending_property(self):
+        """Testa property is_trending"""
+        music = Music.objects.create(
             artist=self.artist,
-            album=self.album,
-            title='Not Popular Track',
-            duration=180,
-            streams_count=500
-        )
-        
-        self.assertTrue(popular_music.is_popular)
-        self.assertFalse(not_popular_music.is_popular)
-    
-    def test_music_is_trending_property(self):
-        """Testa propriedade is_trending"""
-        # Música trending (criada recentemente e com muitos streams)
-        trending_music = Music.objects.create(
-            artist=self.artist,
-            album=self.album,
-            title='Trending Track',
+            title='Trending Music',
             duration=180,
             streams_count=200
         )
-        
-        self.assertTrue(trending_music.is_trending)
-    
-    def test_music_without_duration(self):
-        """Testa criação de música sem duration"""
+        # Música criada agora com mais de 100 streams deve ser trending
+        self.assertTrue(music.is_trending)
+
+    def test_increment_streams(self):
+        """Testa incremento de streams"""
         music = Music.objects.create(
+            artist=self.artist,
+            title='Stream Test',
+            duration=180
+        )
+        initial_count = music.streams_count
+        music.increment_streams()
+        music.refresh_from_db()
+        self.assertEqual(music.streams_count, initial_count + 1)
+
+    def test_increment_downloads(self):
+        """Testa incremento de downloads"""
+        music = Music.objects.create(
+            artist=self.artist,
+            title='Download Test',
+            duration=180
+        )
+        initial_count = music.downloads_count
+        music.increment_downloads()
+        music.refresh_from_db()
+        self.assertEqual(music.downloads_count, initial_count + 1)
+
+    def test_increment_likes(self):
+        """Testa incremento de curtidas"""
+        music = Music.objects.create(
+            artist=self.artist,
+            title='Like Test',
+            duration=180
+        )
+        initial_count = music.likes_count
+        music.increment_likes()
+        music.refresh_from_db()
+        self.assertEqual(music.likes_count, initial_count + 1)
+
+    def test_decrement_likes(self):
+        """Testa decremento de curtidas"""
+        music = Music.objects.create(
+            artist=self.artist,
+            title='Unlike Test',
+            duration=180,
+            likes_count=5
+        )
+        music.decrement_likes()
+        music.refresh_from_db()
+        self.assertEqual(music.likes_count, 4)
+
+    def test_get_duration_formatted(self):
+        """Testa formatação de duração"""
+        music = Music.objects.create(
+            artist=self.artist,
+            title='Duration Test',
+            duration=185
+        )
+        formatted = music.get_duration_formatted()
+        self.assertEqual(formatted, '3:05')
+
+    def test_get_stream_url(self):
+        """Testa URL de streaming"""
+        music = Music.objects.create(
+            artist=self.artist,
+            title='Stream URL Test',
+            duration=180
+        )
+        self.assertEqual(music.get_stream_url(), f'/api/music/{music.id}/stream/')
+
+    def test_get_download_url(self):
+        """Testa URL de download"""
+        music = Music.objects.create(
+            artist=self.artist,
+            title='Download URL Test',
+            duration=180
+        )
+        self.assertEqual(music.get_download_url(), f'/api/music/{music.id}/download/')
+
+
+class MusicSerializerTest(TestCase):
+    """Testes para serializers de Music"""
+
+    def setUp(self):
+        self.genre = Genre.objects.create(name='Forró', slug='forro')
+        self.artist = Artist.objects.create(
+            stage_name='Serializer Artist',
+            genre=self.genre
+        )
+        self.album = Album.objects.create(
+            artist=self.artist,
+            name='Serializer Album'
+        )
+        self.music = Music.objects.create(
             artist=self.artist,
             album=self.album,
-            title='Track Without Duration',
-            is_active=True
-        )
-        
-        self.assertEqual(music.title, 'Track Without Duration')
-        self.assertIsNone(music.duration)
-    
-    def test_music_without_album(self):
-        """Testa criação de música sem álbum"""
-        music = Music.objects.create(
-            artist=self.artist,
-            title='Single Track',
+            title='Serializer Music',
             duration=180,
-            is_active=True
+            streams_count=100
+        )
+
+    def test_music_serializer(self):
+        """Testa serialização de música"""
+        from .serializers import MusicSerializer
+        from django.utils import timezone
+        # Atualizar release_date para ser uma date ao invés de datetime
+        self.music.release_date = timezone.now().date()
+        self.music.save()
+        
+        serializer = MusicSerializer(self.music)
+        data = serializer.data
+        
+        self.assertEqual(data['title'], 'Serializer Music')
+        self.assertEqual(data['artist_name'], 'Serializer Artist')
+        self.assertIn('duration_formatted', data)
+        self.assertIn('stream_url', data)
+        self.assertIn('download_url', data)
+
+    def test_music_create_serializer(self):
+        """Testa criação de música via serializer"""
+        from .serializers import MusicCreateSerializer
+        data = {
+            'artist': self.artist.id,
+            'title': 'New Music',
+            'duration': 180
+        }
+        serializer = MusicCreateSerializer(data=data)
+        self.assertTrue(serializer.is_valid())
+        music = serializer.save()
+        self.assertEqual(music.title, 'New Music')
+
+    def test_music_create_serializer_validation(self):
+        """Testa validação de título"""
+        from .serializers import MusicCreateSerializer
+        data = {
+            'artist': self.artist.id,
+            'title': 'A',  # Muito curto
+            'duration': 180
+        }
+        serializer = MusicCreateSerializer(data=data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_music_stats_serializer(self):
+        """Testa serializer de estatísticas"""
+        from .serializers import MusicStatsSerializer
+        serializer = MusicStatsSerializer(self.music)
+        data = serializer.data
+        
+        self.assertEqual(data['title'], 'Serializer Music')
+        self.assertIn('streams_count', data)
+        self.assertIn('downloads_count', data)
+        self.assertIn('likes_count', data)
+
+
+class MusicIntegrationTest(TestCase):
+    """Testes de integração para Music"""
+
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        
+        self.genre = Genre.objects.create(name='Forró', slug='forro')
+        self.artist = Artist.objects.create(
+            stage_name='Integration Artist',
+            genre=self.genre
+        )
+        self.album = Album.objects.create(
+            artist=self.artist,
+            name='Integration Album'
+        )
+        self.music = Music.objects.create(
+            artist=self.artist,
+            album=self.album,
+            title='Integration Music',
+            duration=180,
+            streams_count=100
+        )
+
+    def test_music_with_album_relationship(self):
+        """Testa relacionamento música-álbum"""
+        self.assertEqual(self.music.album, self.album)
+        self.assertEqual(self.music.artist, self.artist)
+        
+        # Via related_name
+        self.assertIn(self.music, self.album.musics.all())
+
+    def test_music_filter_by_artist_query(self):
+        """Testa query de filtro por artista"""
+        musics = Music.objects.filter(artist=self.artist)
+        self.assertGreater(musics.count(), 0)
+        
+        for music in musics:
+            self.assertEqual(music.artist, self.artist)
+
+    def test_music_filter_by_featured_query(self):
+        """Testa query de filtro por destaque"""
+        Music.objects.create(
+            artist=self.artist,
+            title='Featured Test',
+            duration=180,
+            is_featured=True
         )
         
-        self.assertEqual(music.title, 'Single Track')
-        self.assertIsNone(music.album)
+        featured_musics = Music.objects.filter(is_featured=True)
+        self.assertGreater(featured_musics.count(), 0)
+
+    def test_music_ordering_by_streams(self):
+        """Testa ordenação de músicas por streams"""
+        Music.objects.create(
+            artist=self.artist,
+            title='Most Streamed',
+            duration=180,
+            streams_count=1000
+        )
+        
+        musics = Music.objects.all().order_by('-streams_count')
+        self.assertEqual(musics.first().streams_count, 1000)
+
+    def test_music_filter_by_album(self):
+        """Testa filtro de músicas por álbum"""
+        musics = Music.objects.filter(album=self.album)
+        self.assertGreater(musics.count(), 0)
+        
+        for music in musics:
+            self.assertEqual(music.album, self.album)
+

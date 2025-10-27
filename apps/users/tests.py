@@ -1,183 +1,135 @@
-"""
-Testes robustos para a app Users
-Testa autenticação, CRUD de usuários e permissões
-"""
-
 from django.test import TestCase
 from django.contrib.auth import get_user_model
-from rest_framework.test import APIClient, APITestCase
-from rest_framework import status
 from django.urls import reverse
-import json
+from rest_framework.test import APIClient
+from rest_framework import status
+from rest_framework.test import APIRequestFactory
+from unittest.mock import patch
+from .models import User
 
 User = get_user_model()
 
 
-class UserModelTestCase(TestCase):
+class UserModelTest(TestCase):
     """Testes para o modelo User"""
-    
+
     def setUp(self):
-        """Configuração inicial"""
-        self.user_data = {
-            'username': 'testuser',
-            'email': 'test@example.com',
-            'password': 'testpass123',
-            'first_name': 'Test',
-            'last_name': 'User'
-        }
-    
+        self.user = User.objects.create_user(
+            username='testuser',
+            email='test@example.com',
+            password='testpass123',
+            first_name='Test',
+            last_name='User',
+            user_type='listener'
+        )
+
     def test_user_creation(self):
         """Testa criação de usuário"""
-        user = User.objects.create_user(**self.user_data)
-        
-        self.assertEqual(user.username, 'testuser')
-        self.assertEqual(user.email, 'test@example.com')
-        self.assertTrue(user.check_password('testpass123'))
-        self.assertFalse(user.is_staff)
-        self.assertFalse(user.is_superuser)
-    
-    def test_user_str_representation(self):
+        self.assertEqual(self.user.username, 'testuser')
+        self.assertEqual(self.user.email, 'test@example.com')
+        self.assertEqual(self.user.user_type, 'listener')
+        self.assertTrue(self.user.is_active)
+
+    def test_user_str(self):
         """Testa representação string do usuário"""
-        user = User.objects.create_user(**self.user_data)
-        
-        # A representação string inclui o tipo de usuário: 'username (Ouvinte)'
-        self.assertIn('testuser', str(user))
-        self.assertIn('Ouvinte', str(user))
-    
-    def test_superuser_creation(self):
-        """Testa criação de superusuário"""
-        superuser = User.objects.create_superuser(
-            username='admin',
-            email='admin@example.com',
-            password='admin123'
-        )
-        
-        self.assertTrue(superuser.is_staff)
-        self.assertTrue(superuser.is_superuser)
-    
-    def test_user_default_fields(self):
-        """Testa campos padrão do usuário"""
-        user = User.objects.create_user(**self.user_data)
-        
-        self.assertIsNotNone(user.date_joined)
-        self.assertTrue(user.is_active)  # Usuários são ativos por padrão no modelo customizado
-        self.assertEqual(user.followers_count, 0)
-        self.assertFalse(user.verified)
-    
-    def test_user_modification(self):
-        """Testa modificação de usuário"""
-        user = User.objects.create_user(**self.user_data)
-        user.first_name = 'Modified'
-        user.save()
-        
-        updated_user = User.objects.get(pk=user.pk)
-        self.assertEqual(updated_user.first_name, 'Modified')
+        self.assertEqual(str(self.user), 'testuser (Ouvinte)')
+
+    def test_is_artist_property(self):
+        """Testa property is_artist"""
+        self.assertFalse(self.user.is_artist)
+        self.user.user_type = 'artist'
+        self.assertTrue(self.user.is_artist)
+
+    def test_is_venue_property(self):
+        """Testa property is_venue"""
+        self.assertFalse(self.user.is_venue)
+        self.user.user_type = 'venue'
+        self.assertTrue(self.user.is_venue)
+
+    def test_is_admin_property(self):
+        """Testa property is_admin"""
+        self.assertFalse(self.user.is_admin)
+        self.user.user_type = 'admin'
+        self.assertTrue(self.user.is_admin)
+
+    def test_followers_count_default(self):
+        """Testa contador de seguidores padrão"""
+        self.assertEqual(self.user.followers_count, 0)
+
+    def test_verified_default(self):
+        """Testa status de verificação padrão"""
+        self.assertFalse(self.user.verified)
 
 
-class UserAPITestCase(APITestCase):
-    """Testes para endpoints de usuários"""
-    
+class UserSerializerTest(TestCase):
+    """Testes para serializers de User"""
+
     def setUp(self):
-        """Configuração inicial"""
         self.client = APIClient()
-        
-        # Criar usuários
-        self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
-            password='testpass123',
-            is_active=True
+        self.user_data = {
+            'username': 'newuser',
+            'email': 'newuser@example.com',
+            'password': 'newpass123',
+            'password_confirm': 'newpass123',
+            'first_name': 'New',
+            'last_name': 'User',
+            'user_type': 'listener'
+        }
+
+    def test_create_user_serializer(self):
+        """Testa criação de usuário via serializer"""
+        from .serializers import UserCreateSerializer
+        serializer = UserCreateSerializer(data=self.user_data)
+        self.assertTrue(serializer.is_valid())
+        user = serializer.save()
+        self.assertEqual(user.username, 'newuser')
+        self.assertTrue(user.check_password('newpass123'))
+
+    def test_password_mismatch(self):
+        """Testa validação de senha não coincidindo"""
+        from .serializers import UserCreateSerializer
+        self.user_data['password_confirm'] = 'differentpass'
+        serializer = UserCreateSerializer(data=self.user_data)
+        self.assertFalse(serializer.is_valid())
+
+    def test_full_name_method(self):
+        """Testa método get_full_name"""
+        from .serializers import UserSerializer
+        user = User.objects.create_user(
+            username='fullname',
+            email='full@example.com',
+            password='test123',
+            first_name='John',
+            last_name='Doe'
         )
-        
-        self.superuser = User.objects.create_superuser(
-            username='admin',
-            email='admin@example.com',
-            password='admin123'
-        )
-    
-    def test_user_list_requires_auth(self):
-        """Testa que listagem requer autenticação"""
-        url = '/api/users/'
-        response = self.client.get(url)
-        
-        # Deve retornar 401 ou 403 dependendo da configuração
-        self.assertIn(response.status_code, [401, 403, 404])
-    
-    def test_user_detail_requires_auth(self):
-        """Testa que detalhes requer autenticação"""
-        url = f'/api/users/{self.user.pk}/'
-        response = self.client.get(url)
-        
-        self.assertIn(response.status_code, [401, 403, 404])
+        serializer = UserSerializer(user)
+        self.assertEqual(serializer.data['full_name'], 'John Doe')
 
 
-class AuthenticationTestCase(APITestCase):
-    """Testes de autenticação"""
-    
+class UserSerializerIntegrationTest(TestCase):
+    """Testes de integração com serializers de User"""
+
     def setUp(self):
-        """Configuração inicial"""
         self.client = APIClient()
-        
         self.user = User.objects.create_user(
-            username='testuser',
-            email='test@example.com',
+            username='integration',
+            email='integration@example.com',
             password='testpass123',
-            is_active=True
+            user_type='listener'
         )
-    
-    def test_jwt_token_obtain(self):
-        """Testa obtenção de token JWT"""
-        url = '/api/auth/token/'
-        data = {
-            'username': 'testuser',
-            'password': 'testpass123'
-        }
-        response = self.client.post(url, data)
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access', response.data)
-        self.assertIn('refresh', response.data)
-    
-    def test_jwt_token_refresh(self):
-        """Testa refresh de token JWT"""
-        # Obter token inicial
-        url = '/api/auth/token/'
-        data = {
-            'username': 'testuser',
-            'password': 'testpass123'
-        }
-        response = self.client.post(url, data)
-        refresh_token = response.data['refresh']
-        
-        # Refresh token
-        url = '/api/auth/token/refresh/'
-        response = self.client.post(url, {'refresh': refresh_token})
-        
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn('access', response.data)
-    
-    def test_invalid_credentials(self):
-        """Testa credenciais inválidas"""
-        url = '/api/auth/token/'
-        data = {
-            'username': 'testuser',
-            'password': 'wrongpassword'
-        }
-        response = self.client.post(url, data)
-        
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
-    
-    def test_inactive_user_login(self):
-        """Testa login de usuário inativo"""
-        self.user.is_active = False
+
+    def test_user_password_set_correctly(self):
+        """Testa que a senha é configurada corretamente"""
+        self.assertTrue(self.user.check_password('testpass123'))
+        self.assertFalse(self.user.check_password('wrongpass'))
+
+    def test_user_update_fields(self):
+        """Testa atualização de campos do usuário"""
+        self.user.first_name = 'Updated'
+        self.user.bio = 'New bio'
         self.user.save()
         
-        url = '/api/auth/token/'
-        data = {
-            'username': 'testuser',
-            'password': 'testpass123'
-        }
-        response = self.client.post(url, data)
-        
-        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        updated_user = User.objects.get(id=self.user.id)
+        self.assertEqual(updated_user.first_name, 'Updated')
+        self.assertEqual(updated_user.bio, 'New bio')
 

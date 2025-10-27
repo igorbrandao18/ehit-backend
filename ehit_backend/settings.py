@@ -219,7 +219,13 @@ if ENVIRONMENT == 'development':
                 'LOCATION': config('REDIS_URL', default='redis://localhost:6380/0'),
                 'OPTIONS': {
                     'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                }
+                    'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+                    'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
+                    'COMPRESS_MIN_LENGTH': 100,
+                    'PARSER_CLASS': 'redis.connection.HiredisParser',
+                },
+                'KEY_PREFIX': 'ehit_dev',
+                'VERSION': config('CACHE_VERSION', default='1'),
             }
         }
         print("🔧 Cache: Usando Redis via Docker (desenvolvimento)")
@@ -228,6 +234,8 @@ if ENVIRONMENT == 'development':
         CACHES = {
             'default': {
                 'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+                'KEY_PREFIX': 'ehit_dev',
+                'VERSION': config('CACHE_VERSION', default='1'),
             }
         }
         print("🔧 Cache: Usando memória local (desenvolvimento)")
@@ -239,10 +247,24 @@ else:
             'LOCATION': config('REDIS_URL', default='redis://localhost:6379/0'),
             'OPTIONS': {
                 'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            }
+                'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+                'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
+                'COMPRESS_MIN_LENGTH': 100,
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+                'RETRY_ON_TIMEOUT': True,
+                'PARSER_CLASS': 'redis.connection.HiredisParser',
+                'CONNECTION_POOL_CLASS': 'redis.BlockingConnectionPool',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'timeout': 20,
+                },
+            },
+            'KEY_PREFIX': 'ehit_prod',
+            'VERSION': config('CACHE_VERSION', default='1'),
         }
     }
-    print("🚀 Cache: Usando Redis (produção)")
+    print("🚀 Cache: Usando Redis otimizado (produção)")
 
 # Session Configuration
 SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
