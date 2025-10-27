@@ -32,14 +32,6 @@ class PlaylistListView(generics.ListAPIView):
     
     def get_queryset(self):
         """Filtros de busca com cache"""
-        # Criar chave de cache baseada nos parâmetros
-        cache_key = f"playlists_list_{self.request.query_params.get('search', '')}_{self.request.query_params.get('ordering', '-created_at')}"
-        
-        # Tentar buscar do cache primeiro
-        cached_queryset = cache.get(cache_key)
-        if cached_queryset is not None:
-            return cached_queryset
-        
         queryset = super().get_queryset()
         
         # Filtro por visibilidade (apenas ativas)
