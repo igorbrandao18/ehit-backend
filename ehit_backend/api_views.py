@@ -32,6 +32,14 @@ def api_index(request):
                     "albums": f"{base_url}artists/<id>/albums/"
                 }
             },
+            "albums": {
+                "url": f"{base_url}artists/albums/",
+                "description": "Músicas dos álbuns",
+                "methods": ["GET"],
+                "endpoints": {
+                    "album_musics": f"{base_url}artists/albums/<album_id>/musics/"
+                }
+            },
             "playlists": {
                 "url": f"{base_url}playlists/",
                 "description": "PlayHits (Playlists)",
@@ -69,12 +77,17 @@ def api_index(request):
             "banners": {
                 "ordering": "Ordenação (default: -start_date)",
                 "page_size": "Itens por página (default: 20)"
+            },
+            "albums": {
+                "page": "Número da página (default: 1)",
+                "page_size": "Itens por página (default: 20)"
             }
         },
         "examples": {
             "all_artists": f"{base_url}artists/",
             "artist_detail": f"{base_url}artists/5/",
             "artist_albums": f"{base_url}artists/5/albums/",
+            "album_musics": f"{base_url}artists/albums/1/musics/",
             "all_playlists": f"{base_url}playlists/",
             "featured_playlists": f"{base_url}playlists/?featured=true",
             "playlist_detail": f"{base_url}playlists/1/",
