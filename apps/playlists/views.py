@@ -2,7 +2,6 @@ from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from django.core.cache import cache
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
@@ -60,8 +59,8 @@ class PlaylistListView(generics.ListAPIView):
         ordering = self.request.query_params.get('ordering', '-created_at')
         queryset = queryset.order_by(ordering)
         
-        # Cache por 10 minutos
-        cache.set(cache_key, queryset, 60 * 10)
+        # Cache desabilitado para QuerySet (não é serializável)
+        # O cache_page já está na view
         
         return queryset
 
