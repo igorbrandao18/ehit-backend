@@ -5,6 +5,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.views.decorators.vary import vary_on_headers
+from django.db import models
 from .models import Playlist
 from .serializers import (
     PlaylistSerializer, PlaylistCreateSerializer, PlaylistDetailSerializer
@@ -20,7 +21,9 @@ class StandardResultsSetPagination(PageNumberPagination):
 
 class PlaylistListView(generics.ListAPIView):
     """Lista de playlists com cache Redis"""
-    queryset = Playlist.objects.filter(is_active=True)
+    queryset = Playlist.objects.filter(is_active=True).annotate(
+        musics_count=models.Count('musics')
+    ).filter(musics_count__gt=0)
     serializer_class = PlaylistSerializer
     pagination_class = StandardResultsSetPagination
     permission_classes = [permissions.AllowAny]
@@ -31,6 +34,11 @@ class PlaylistListView(generics.ListAPIView):
         
         # Filtro por visibilidade (apenas ativas)
         queryset = queryset.filter(is_active=True)
+        
+        # Apenas playlists com músicas
+        queryset = queryset.annotate(
+            musics_count=models.Count('musics')
+        ).filter(musics_count__gt=0)
         
         # Busca por nome
         search = self.request.query_params.get('search')
