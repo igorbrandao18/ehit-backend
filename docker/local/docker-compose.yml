@@ -13,7 +13,7 @@ services:
     volumes:
       - postgres_local_data:/var/lib/postgresql/data
     ports:
-      - "5433:5432"  # Porta diferente para não conflitar
+      - "5434:5432"  # Porta diferente para não conflitar
     networks:
       - ehit_local_network
     restart: unless-stopped
