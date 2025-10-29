@@ -48,11 +48,6 @@ services:
       context: ../..
       dockerfile: docker/prod/Dockerfile
     container_name: ehit_backend_prod
-    command: >
-      sh -c "mkdir -p /app/logs &&
-             python manage.py migrate &&
-             python manage.py collectstatic --noinput &&
-             gunicorn ehit_backend.wsgi:application --bind 0.0.0.0:3030 --workers 3"
     volumes:
       - /var/www/static:/app/staticfiles
       - /var/www/media:/app/media

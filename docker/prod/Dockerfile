@@ -38,6 +38,11 @@ COPY . /app/
 RUN mkdir -p /app/staticfiles /app/media /app/logs \
     && chown -R appuser:appuser /app
 
+# Copy entrypoint script
+COPY entrypoint_prod.sh /app/entrypoint_prod.sh
+RUN chmod +x /app/entrypoint_prod.sh \
+    && chown appuser:appuser /app/entrypoint_prod.sh
+
 # Switch to non-root user
 USER appuser
 
@@ -48,5 +53,5 @@ EXPOSE 3030
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:3030/health/ || exit 1
 
-# Run Gunicorn for production
-CMD ["gunicorn", "--bind", "0.0.0.0:3030", "--workers", "3", "--timeout", "30", "ehit_backend.wsgi:application"]
+# Use entrypoint script for production
+CMD ["/app/entrypoint_prod.sh"]

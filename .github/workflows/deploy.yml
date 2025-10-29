@@ -85,23 +85,18 @@ jobs:
           echo '🔧 Building and starting containers...'
           docker-compose -f docker/prod/docker-compose.yml up -d --build
           
-          # Create and run migrations
-          echo '🔄 Creating new migrations...'
-          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py makemigrations --noinput || echo '⚠️ No new migrations to create'
-          
-          echo '🔄 Running database migrations...'
-          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py migrate --noinput || echo '⚠️ Migrations may have failed, continuing...'
-          
-          # Collect static files
-          echo '📁 Collecting static files...'
-          docker-compose -f docker/prod/docker-compose.yml exec -T web python manage.py collectstatic --noinput || echo '⚠️ Static collection may have failed, continuing...'
-          
           # Check container status
           echo '📊 Container status:'
           docker-compose -f docker/prod/docker-compose.yml ps
           
+          # Show recent logs to verify entrypoint script ran
+          echo '📋 Checking container logs for migration status...'
+          sleep 5
+          docker logs ehit_backend_prod --tail 50
+          
           echo '✅ Docker deployment completed!'
           echo '🌐 Backend available at: http://165.227.180.118:3030'
+          echo '💡 Note: Migrations run automatically via entrypoint script'
         "
 
     - name: 🔍 Verify Deployment
