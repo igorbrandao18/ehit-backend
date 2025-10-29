@@ -81,8 +81,9 @@ jobs:
         ssh root@165.227.180.118 "
           cd /opt/ehit_backend
           
-          # Build and start containers
+          # Build and start containers with production environment
           echo '🔧 Building and starting containers...'
+          export ENVIRONMENT=production
           docker-compose -f docker/prod/docker-compose.yml up -d --build
           
           # Check container status
