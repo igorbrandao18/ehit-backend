@@ -4,6 +4,11 @@ from .models import Music
 
 class GenreSerializer(serializers.ModelSerializer):
     """Serializer simplificado para gênero"""
+    name = serializers.CharField(allow_null=True, default=None)
+    slug = serializers.CharField(allow_null=True, default=None)
+    color = serializers.CharField(allow_null=True, default=None)
+    icon = serializers.CharField(allow_null=True, default=None)
+    
     class Meta:
         model = Music.genre.field.related_model
         fields = ['id', 'name', 'slug', 'color', 'icon']
@@ -11,6 +16,10 @@ class GenreSerializer(serializers.ModelSerializer):
 
 class AlbumSerializer(serializers.ModelSerializer):
     """Serializer simplificado para álbum"""
+    name = serializers.CharField(allow_null=True, default=None)
+    cover = serializers.ImageField(allow_null=True, read_only=True)
+    featured = serializers.BooleanField(allow_null=True, default=False)
+    
     class Meta:
         model = Music.album.field.related_model
         fields = ['id', 'name', 'cover', 'featured']
@@ -19,16 +28,16 @@ class AlbumSerializer(serializers.ModelSerializer):
 class MusicSerializer(serializers.ModelSerializer):
     """Serializer para o modelo Music"""
     
-    artist_name = serializers.CharField(source='artist.stage_name', read_only=True)
-    album_name = serializers.CharField(source='album.name', read_only=True)
-    album_featured = serializers.BooleanField(source='album.featured', read_only=True)
-    genre_data = GenreSerializer(source='genre', read_only=True)
-    album_data = AlbumSerializer(source='album', read_only=True)
-    stream_url = serializers.CharField(source='get_stream_url', read_only=True)
-    download_url = serializers.CharField(source='get_download_url', read_only=True)
+    artist_name = serializers.CharField(source='artist.stage_name', read_only=True, allow_null=True)
+    album_name = serializers.CharField(source='album.name', read_only=True, allow_null=True, default=None)
+    album_featured = serializers.BooleanField(source='album.featured', read_only=True, allow_null=True, default=False)
+    genre_data = GenreSerializer(source='genre', read_only=True, allow_null=True)
+    album_data = AlbumSerializer(source='album', read_only=True, allow_null=True)
+    stream_url = serializers.CharField(source='get_stream_url', read_only=True, allow_null=True)
+    download_url = serializers.CharField(source='get_download_url', read_only=True, allow_null=True)
     file_size_mb = serializers.SerializerMethodField()
-    is_popular = serializers.BooleanField(read_only=True)
-    is_trending = serializers.BooleanField(read_only=True)
+    is_popular = serializers.BooleanField(read_only=True, default=False)
+    is_trending = serializers.BooleanField(read_only=True, default=False)
     
     class Meta:
         model = Music
