@@ -6,14 +6,36 @@ set -e
 
 echo "🚀 Starting production deployment..."
 
-# Wait for database to be ready
+# Wait for database to be ready using Python
 echo "⏳ Waiting for database..."
-until python manage.py dbshell -c "SELECT 1" > /dev/null 2>&1; do
-  echo "⏳ Database not ready, waiting 2 seconds..."
-  sleep 2
-done
+python << END
+import psycopg2
+import sys
+import time
 
-echo "✅ Database is ready!"
+max_attempts = 30
+for attempt in range(max_attempts):
+    try:
+        conn = psycopg2.connect(
+            dbname='ehit_db',
+            user='ehit_user',
+            password='ehit_password',
+            host='db',
+            port='5432'
+        )
+        conn.close()
+        print("✅ Database is ready!")
+        sys.exit(0)
+    except psycopg2.OperationalError:
+        if attempt < max_attempts - 1:
+            print("⏳ Database not ready, waiting 2 seconds...")
+            time.sleep(2)
+        else:
+            print("❌ Timeout waiting for database after 30 attempts")
+            sys.exit(1)
+
+sys.exit(1)
+END
 
 # Run migrations
 echo "🔄 Running migrations..."
