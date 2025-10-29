@@ -96,6 +96,8 @@ class Music(BaseModel):
     
     def get_duration_formatted(self):
         """Retorna duração formatada (MM:SS)"""
+        if self.duration is None:
+            return "0:00"
         minutes, seconds = divmod(self.duration, 60)
         return f"{minutes}:{seconds:02d}"
     
