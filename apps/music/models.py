@@ -5,6 +5,7 @@ import os
 import subprocess
 import tempfile
 from django.core.files import File
+from mutagen import File as MutagenFile
 
 
 class Music(BaseModel):
@@ -213,3 +214,19 @@ class Music(BaseModel):
             size_bytes = os.path.getsize(self.file.path)
             return round(size_bytes / (1024 * 1024), 2)
         return 0
+    
+    def calculate_duration(self):
+        """Calcula e define a duração da música a partir do arquivo de áudio"""
+        if not self.file:
+            return None
+        
+        try:
+            # Usar mutagen para extrair duração
+            audio = MutagenFile(self.file.path)
+            if audio is not None:
+                duration = audio.info.length
+                return int(duration)
+            return None
+        except Exception as e:
+            print(f"Erro ao calcular duração: {e}")
+            return None

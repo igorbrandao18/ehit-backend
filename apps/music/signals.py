@@ -1,9 +1,26 @@
-from django.db.models.signals import post_save
+from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from .models import Music
 import logging
 
 logger = logging.getLogger(__name__)
+
+@receiver(pre_save, sender=Music)
+def calculate_duration_before_save(sender, instance, **kwargs):
+    """
+    Calcula a duração da música automaticamente antes de salvar
+    """
+    if instance.file and not instance.duration:
+        try:
+            logger.info(f"Calculando duração da música {instance.title}")
+            duration = instance.calculate_duration()
+            if duration:
+                instance.duration = duration
+                logger.info(f"Duração calculada: {duration} segundos ({duration//60}:{duration%60:02d})")
+            else:
+                logger.warning(f"Não foi possível calcular a duração da música {instance.title}")
+        except Exception as e:
+            logger.error(f"Erro ao calcular duração da música {instance.title}: {e}")
 
 @receiver(post_save, sender=Music)
 def compress_audio_on_upload(sender, instance, created, **kwargs):
