@@ -29,7 +29,14 @@ def api_index(request):
                 "endpoints": {
                     "list": f"{base_url}artists/",
                     "detail": f"{base_url}artists/<id>/",
-                    "albuns_do_artista": f"{base_url}artists/<id>/albums/",
+                    "albuns_do_artista": {
+                        "url": f"{base_url}artists/<id>/albums/",
+                        "description": "Retorna todos os álbuns do artista (com músicas incluídas em cada álbum)",
+                        "query_params": {
+                            "featured": "true para filtrar apenas álbuns em destaque",
+                            "search": "Buscar álbuns por nome"
+                        }
+                    },
                     "músicas_do_álbum": f"{base_url}artists/albums/<album_id>/musics/"
                 }
             },
@@ -61,6 +68,10 @@ def api_index(request):
                 "ordering": "Ordenação (default: -created_at)",
                 "page_size": "Itens por página (default: 20)"
             },
+            "albuns_do_artista": {
+                "featured": "true para filtrar apenas álbuns em destaque",
+                "search": "Buscar álbuns por nome do álbum"
+            },
             "playlists": {
                 "featured": "true para mostrar apenas em destaque",
                 "search": "Buscar por nome da playlist",
@@ -76,6 +87,8 @@ def api_index(request):
             "all_artists": f"{base_url}artists/",
             "artist_detail": f"{base_url}artists/5/",
             "álbuns_do_artista": f"{base_url}artists/5/albums/",
+            "álbuns_em_destaque_do_artista": f"{base_url}artists/5/albums/?featured=true",
+            "buscar_álbuns_do_artista": f"{base_url}artists/5/albums/?search=rock",
             "músicas_do_álbum": f"{base_url}artists/albums/1/musics/",
             "all_playlists": f"{base_url}playlists/",
             "featured_playlists": f"{base_url}playlists/?featured=true",
