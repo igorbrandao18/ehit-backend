@@ -190,10 +190,14 @@ STATIC_ROOT = config('STATIC_ROOT', default=BASE_DIR / 'staticfiles')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = config('MEDIA_ROOT', default=BASE_DIR / 'media')
 
-# File Upload Settings
-FILE_UPLOAD_MAX_MEMORY_SIZE = 500 * 1024 * 1024  # 500MB (for music files)
-DATA_UPLOAD_MAX_MEMORY_SIZE = 500 * 1024 * 1024  # 500MB (for music files)
+# File Upload Settings - Otimizado para upload rápido
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB - arquivos maiores vão direto para disco
+DATA_UPLOAD_MAX_MEMORY_SIZE = 500 * 1024 * 1024  # 500MB
 FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',  # Usa disco temporário (mais rápido)
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',     # Apenas para arquivos pequenos
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

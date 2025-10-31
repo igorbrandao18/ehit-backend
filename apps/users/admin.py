@@ -105,65 +105,48 @@ class AlbumAdmin(admin.ModelAdmin):
     inlines = [MusicInline]
     
     def save_formset(self, request, form, formset, change):
-        """Define valores padrão para músicas ao salvar"""
-        instances = formset.save(commit=False)
-        for instance in instances:
-            # Validações básicas primeiro - se não tiver dados mínimos, pular
-            if not instance.title or not instance.title.strip():
-                # Se não tem título, pular esta instância (linha vazia)
-                continue
-            
-            # Álbum vem do form (o álbum sendo editado)
-            if not instance.album and form.instance.pk:
-                instance.album = form.instance
-            
-            # Artista vem do álbum - verificar de forma segura
-            try:
-                has_artist = instance.artist_id is not None
-            except AttributeError:
-                has_artist = False
-            
-            if not has_artist and form.instance.artist:
-                instance.artist = form.instance.artist
-            
-            # Validação crítica: artista é obrigatório
-            try:
-                if not instance.artist_id:
-                    # Se não tem artista, pular esta instância
-                    continue
-            except AttributeError:
-                # Se não consegue verificar, pular esta instância
-                continue
-            
-            # Gênero vem do artista do álbum (apenas se não tiver)
-            if not instance.genre:
-                try:
-                    if instance.artist and instance.artist.genre:
-                        instance.genre = instance.artist.genre
-                except (AttributeError, TypeError):
-                    pass
-            
-            # Capa vem do álbum (apenas se não tiver)
-            if not instance.cover and form.instance.cover:
-                instance.cover = form.instance.cover
-            
-            # Duração pode ser calculada manualmente depois ou deixar em branco
-            
-            # Salvar a instância com tratamento de erros
-            try:
-                instance.save()
-                # Salvar relacionamento ManyToMany se houver
-                formset.save_m2m()
-            except Exception as e:
-                # Log do erro mas não interromper o processo
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Erro ao salvar música '{instance.title if hasattr(instance, 'title') else 'sem título'}': {e}")
-                # Continuar com as próximas instâncias
+        """Define valores padrão para músicas ao salvar - OTIMIZADO"""
+        from django.db import transaction
         
-        # Deletar itens marcados
-        for obj in formset.deleted_objects:
-            obj.delete()
+        instances = formset.save(commit=False)
+        
+        # Preparar dados do álbum uma vez só (evita múltiplos acessos)
+        album_instance = form.instance if form.instance.pk else None
+        album_artist = album_instance.artist if album_instance else None
+        album_artist_genre_id = album_artist.genre_id if album_artist else None
+        
+        # Processar todas as instâncias em uma transação única
+        with transaction.atomic():
+            for instance in instances:
+                # Validação rápida: título obrigatório
+                if not instance.title or not instance.title.strip():
+                    continue
+                
+                # Atribuir álbum (rápido - apenas ID)
+                if not instance.album_id and album_instance:
+                    instance.album_id = album_instance.pk
+                
+                # Atribuir artista (rápido - apenas ID)
+                if not instance.artist_id and album_artist:
+                    instance.artist_id = album_artist.pk
+                
+                # Se ainda não tem artista, pular
+                if not instance.artist_id:
+                    continue
+                
+                # Atribuir gênero apenas se não tiver (evita query ao banco)
+                if not instance.genre_id and album_artist_genre_id:
+                    instance.genre_id = album_artist_genre_id
+                
+                # Salvar imediatamente (sem processamento adicional)
+                instance.save()
+            
+            # Salvar relacionamentos ManyToMany uma vez só (fora do loop)
+            formset.save_m2m()
+            
+            # Deletar itens marcados
+            for obj in formset.deleted_objects:
+                obj.delete()
 
 
 # =============================================================================
