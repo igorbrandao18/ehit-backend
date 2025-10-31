@@ -117,18 +117,31 @@ class AlbumAdmin(admin.ModelAdmin):
             if not instance.album and form.instance.pk:
                 instance.album = form.instance
             
-            # Artista vem do álbum
-            if not instance.artist and form.instance.artist:
+            # Artista vem do álbum - verificar de forma segura
+            try:
+                has_artist = instance.artist_id is not None
+            except AttributeError:
+                has_artist = False
+            
+            if not has_artist and form.instance.artist:
                 instance.artist = form.instance.artist
             
             # Validação crítica: artista é obrigatório
-            if not instance.artist:
-                # Se não tem artista, pular esta instância
+            try:
+                if not instance.artist_id:
+                    # Se não tem artista, pular esta instância
+                    continue
+            except AttributeError:
+                # Se não consegue verificar, pular esta instância
                 continue
             
             # Gênero vem do artista do álbum (apenas se não tiver)
-            if not instance.genre and instance.artist.genre:
-                instance.genre = instance.artist.genre
+            if not instance.genre:
+                try:
+                    if instance.artist and instance.artist.genre:
+                        instance.genre = instance.artist.genre
+                except (AttributeError, TypeError):
+                    pass
             
             # Capa vem do álbum (apenas se não tiver)
             if not instance.cover and form.instance.cover:
