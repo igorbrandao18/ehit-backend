@@ -108,23 +108,46 @@ class AlbumAdmin(admin.ModelAdmin):
         """Define valores padrão para músicas ao salvar"""
         instances = formset.save(commit=False)
         for instance in instances:
+            # Validações básicas primeiro - se não tiver dados mínimos, pular
+            if not instance.title or not instance.title.strip():
+                # Se não tem título, pular esta instância (linha vazia)
+                continue
+            
+            # Álbum vem do form (o álbum sendo editado)
+            if not instance.album and form.instance.pk:
+                instance.album = form.instance
+            
             # Artista vem do álbum
             if not instance.artist and form.instance.artist:
                 instance.artist = form.instance.artist
             
-            # Gênero vem do artista do álbum
-            if instance.artist and instance.artist.genre:
+            # Validação crítica: artista é obrigatório
+            if not instance.artist:
+                # Se não tem artista, pular esta instância
+                continue
+            
+            # Gênero vem do artista do álbum (apenas se não tiver)
+            if not instance.genre and instance.artist.genre:
                 instance.genre = instance.artist.genre
             
-            # Duração padrão de 180s (3 minutos)
-            if not instance.duration:
-                instance.duration = 180
-            
-            # Capa vem do álbum
+            # Capa vem do álbum (apenas se não tiver)
             if not instance.cover and form.instance.cover:
                 instance.cover = form.instance.cover
             
-            instance.save()
+            # Não definir duração padrão - deixar o signal calcular
+            # A duração será calculada automaticamente pelo signal após o arquivo ser salvo
+            
+            # Salvar a instância com tratamento de erros
+            try:
+                instance.save()
+                # Salvar relacionamento ManyToMany se houver
+                formset.save_m2m()
+            except Exception as e:
+                # Log do erro mas não interromper o processo
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Erro ao salvar música '{instance.title if hasattr(instance, 'title') else 'sem título'}': {e}")
+                # Continuar com as próximas instâncias
         
         # Deletar itens marcados
         for obj in formset.deleted_objects:
