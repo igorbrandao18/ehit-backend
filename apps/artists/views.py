@@ -119,7 +119,15 @@ def artist_complete_view(request, pk):
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
 def artist_albums_view(request, pk):
-    """Álbuns do artista"""
+    """
+    Retorna todos os álbuns de um artista pelo ID do artista.
+    
+    URL: /api/artists/<id>/albums/
+    
+    Query Parameters:
+    - featured: true/false para filtrar apenas álbuns em destaque
+    - search: busca por nome do álbum
+    """
     try:
         artist = Artist.objects.get(pk=pk, is_active=True)
     except Artist.DoesNotExist:
@@ -128,8 +136,26 @@ def artist_albums_view(request, pk):
             status=status.HTTP_404_NOT_FOUND
         )
     
-    # Buscar álbuns do artista
-    albums = artist.albums.filter(is_active=True).order_by('-featured', '-release_date', '-created_at')
+    # Buscar álbuns do artista que tenham músicas ativas
+    albums = artist.albums.filter(
+        is_active=True
+    ).annotate(
+        musics_count=Count('musics', filter=Q(musics__is_active=True))
+    ).filter(musics_count__gt=0)
+    
+    # Filtro opcional por destaque
+    featured = request.query_params.get('featured')
+    if featured and featured.lower() == 'true':
+        albums = albums.filter(featured=True)
+    
+    # Busca opcional por nome
+    search = request.query_params.get('search')
+    if search:
+        albums = albums.filter(name__icontains=search)
+    
+    # Ordenação: destaque primeiro, depois data de lançamento
+    albums = albums.order_by('-featured', '-release_date', '-created_at')
+    
     albums_serializer = AlbumSerializer(albums, many=True)
     
     response_data = {
