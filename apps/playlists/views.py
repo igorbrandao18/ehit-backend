@@ -2,9 +2,6 @@ from rest_framework import generics, status, permissions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import cache_page
-from django.views.decorators.vary import vary_on_headers
 from django.db import models
 from .models import Playlist
 from .serializers import (
@@ -51,24 +48,17 @@ class PlaylistListView(generics.ListAPIView):
             queryset = queryset.filter(is_featured=True)
         
         # Ordenação
-        ordering = self.request.query_params.get('ordering', '-created_at')
+        ordering = self.request.query_params.get('ordering', 'order')
         queryset = queryset.order_by(ordering)
-        
-        # Cache desabilitado para QuerySet (não é serializável)
-        # O cache_page já está na view
         
         return queryset
 
 
 class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Detalhes da PlayHit com cache Redis"""
+    """Detalhes da PlayHit"""
     queryset = Playlist.objects.filter(is_active=True)
     serializer_class = PlaylistDetailSerializer
     permission_classes = [permissions.AllowAny]
-    
-    @method_decorator(cache_page(60 * 30))  # Cache por 30 minutos
-    def get(self, request, *args, **kwargs):
-        return super().get(request, *args, **kwargs)
 
 
 class PlaylistCreateView(generics.CreateAPIView):
@@ -183,19 +173,13 @@ def reorder_playlist_musics_view(request, pk):
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-@cache_page(60 * 20)  # Cache por 20 minutos
 def active_playhits_view(request):
-    """PlayHits ativas com cache Redis"""
-    cache_key = "active_playhits"
-    
-    # Tentar buscar do cache primeiro
-    cached_data = cache.get(cache_key)
-    if cached_data is not None:
-        return Response(cached_data)
-    
+    """PlayHits ativas"""
     playhits = Playlist.objects.filter(
         is_active=True
-    ).order_by('-created_at')
+    ).annotate(
+        musics_count=models.Count('musics')
+    ).filter(musics_count__gt=0).order_by('order', '-is_featured', '-created_at')
     
     serializer = PlaylistSerializer(playhits, many=True)
     
@@ -204,28 +188,19 @@ def active_playhits_view(request):
         'count': len(serializer.data)
     }
     
-    # Cache por 15 minutos
-    cache.set(cache_key, response_data, 60 * 15)
-    
     return Response(response_data)
 
 
 @api_view(['GET'])
 @permission_classes([permissions.AllowAny])
-@cache_page(60 * 20)  # Cache por 20 minutos
 def featured_playhits_view(request):
-    """PlayHits em destaque com cache Redis"""
-    cache_key = "featured_playhits"
-    
-    # Tentar buscar do cache primeiro
-    cached_data = cache.get(cache_key)
-    if cached_data is not None:
-        return Response(cached_data)
-    
+    """PlayHits em destaque"""
     featured_playhits = Playlist.objects.filter(
         is_active=True,
         is_featured=True
-    ).order_by('-created_at')
+    ).annotate(
+        musics_count=models.Count('musics')
+    ).filter(musics_count__gt=0).order_by('order', '-created_at')
     
     serializer = PlaylistSerializer(featured_playhits, many=True)
     
@@ -233,8 +208,5 @@ def featured_playhits_view(request):
         'featured_playhits': serializer.data,
         'count': len(serializer.data)
     }
-    
-    # Cache por 15 minutos
-    cache.set(cache_key, response_data, 60 * 15)
     
     return Response(response_data)

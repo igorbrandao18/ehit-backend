@@ -47,11 +47,17 @@ class Playlist(BaseModel):
     
     def get_total_duration(self):
         """Retorna duração total da playlist em segundos"""
-        return sum(music.duration for music in self.musics.all())
+        total = sum(
+            music.duration for music in self.musics.all() 
+            if music.duration is not None
+        )
+        return total or 0
     
     def get_total_duration_formatted(self):
         """Retorna duração total formatada (HH:MM:SS)"""
         total_seconds = self.get_total_duration()
+        if total_seconds is None or total_seconds == 0:
+            return "0:00"
         hours, remainder = divmod(total_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         
