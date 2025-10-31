@@ -10,16 +10,17 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class AlbumSerializer(serializers.ModelSerializer):
-    """Serializer para o modelo Album"""
+    """Serializer para o modelo Album com músicas"""
     
     artist_name = serializers.CharField(source='artist.stage_name', read_only=True)
     musics_count = serializers.SerializerMethodField()
+    musics = serializers.SerializerMethodField()
     
     class Meta:
         model = Album
         fields = [
             'id', 'artist', 'artist_name', 'name', 'cover', 
-            'release_date', 'featured', 'musics_count',
+            'release_date', 'featured', 'musics_count', 'musics',
             'created_at', 'updated_at', 'is_active'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
@@ -27,6 +28,12 @@ class AlbumSerializer(serializers.ModelSerializer):
     def get_musics_count(self, obj):
         """Retorna quantidade de músicas no álbum"""
         return obj.get_musics_count()
+    
+    def get_musics(self, obj):
+        """Retorna as músicas do álbum"""
+        from apps.music.serializers import MusicSerializer
+        musics = obj.musics.filter(is_active=True).order_by('-created_at')
+        return MusicSerializer(musics, many=True, context=self.context).data
 
 
 class AlbumCreateSerializer(serializers.ModelSerializer):
