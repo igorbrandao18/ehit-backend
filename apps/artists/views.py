@@ -71,7 +71,7 @@ def active_artists_view(request):
         is_active=True
     ).order_by('-created_at')
     
-    serializer = ArtistSerializer(artists, many=True)
+    serializer = ArtistSerializer(artists, many=True, context={'request': request})
     
     response_data = {
         'artists': serializer.data,
@@ -94,16 +94,16 @@ def artist_complete_view(request, pk):
         )
     
     # Serializar artista
-    artist_serializer = ArtistSerializer(artist)
+    artist_serializer = ArtistSerializer(artist, context={'request': request})
     
     # Buscar álbuns do artista
     albums = artist.albums.filter(is_active=True).order_by('-featured', '-release_date', '-created_at')
-    albums_serializer = AlbumSerializer(albums, many=True)
+    albums_serializer = AlbumSerializer(albums, many=True, context={'request': request})
     
     # Buscar músicas do artista
     musics = artist.musics.filter(is_active=True).order_by('-streams_count', '-created_at')
     from apps.music.serializers import MusicSerializer
-    musics_serializer = MusicSerializer(musics, many=True)
+    musics_serializer = MusicSerializer(musics, many=True, context={'request': request})
     
     response_data = {
         'artist': artist_serializer.data,
@@ -156,13 +156,19 @@ def artist_albums_view(request, pk):
     # Ordenação: destaque primeiro, depois data de lançamento
     albums = albums.order_by('-featured', '-release_date', '-created_at')
     
-    albums_serializer = AlbumSerializer(albums, many=True)
+    albums_serializer = AlbumSerializer(albums, many=True, context={'request': request})
+    
+    # Construir foto absoluta do artista
+    photo_url = None
+    if artist.photo:
+        url = artist.photo.url
+        photo_url = request.build_absolute_uri(url) if request else url
     
     response_data = {
         'artist': {
             'id': artist.id,
             'stage_name': artist.stage_name,
-            'photo': artist.photo.url if artist.photo else None,
+            'photo': photo_url,
         },
         'albums': albums_serializer.data,
         'count': albums.count()
@@ -184,7 +190,7 @@ def artist_with_musics_view(request, pk):
         )
     
     # Serializar artista
-    artist_serializer = ArtistSerializer(artist)
+    artist_serializer = ArtistSerializer(artist, context={'request': request})
     
     # Buscar músicas do artista com paginação
     musics = artist.musics.filter(is_active=True).order_by('-streams_count', '-created_at')
@@ -198,7 +204,7 @@ def artist_with_musics_view(request, pk):
     
     musics_page = musics[start:end]
     from apps.music.serializers import MusicSerializer
-    musics_serializer = MusicSerializer(musics_page, many=True)
+    musics_serializer = MusicSerializer(musics_page, many=True, context={'request': request})
     
     return Response({
         'artist': artist_serializer.data,

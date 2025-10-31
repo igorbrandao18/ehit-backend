@@ -70,6 +70,22 @@ class MusicSerializer(serializers.ModelSerializer):
     def get_file_size_mb(self, obj):
         """Retorna o tamanho do arquivo em MB"""
         return obj.get_file_size_mb()
+    
+    def to_representation(self, instance):
+        """Gera URLs absolutas para file e cover (padrão playlists)."""
+        data = super().to_representation(instance)
+        request = self.context.get('request') if hasattr(self, 'context') else None
+        # Absolutizar file
+        file_field = getattr(instance, 'file', None)
+        if file_field and getattr(file_field, 'url', None):
+            url = file_field.url
+            data['file'] = request.build_absolute_uri(url) if request else url
+        # Absolutizar cover
+        cover_field = getattr(instance, 'cover', None)
+        if cover_field and getattr(cover_field, 'url', None):
+            url = cover_field.url
+            data['cover'] = request.build_absolute_uri(url) if request else url
+        return data
 
 
 class MusicCreateSerializer(serializers.ModelSerializer):

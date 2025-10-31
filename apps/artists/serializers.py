@@ -34,6 +34,16 @@ class AlbumSerializer(serializers.ModelSerializer):
         from apps.music.serializers import MusicSerializer
         musics = obj.musics.filter(is_active=True).order_by('-created_at')
         return MusicSerializer(musics, many=True, context=self.context).data
+    
+    def to_representation(self, instance):
+        """Gera URL absoluta para cover (padrão playlists)."""
+        data = super().to_representation(instance)
+        request = self.context.get('request') if hasattr(self, 'context') else None
+        cover_field = getattr(instance, 'cover', None)
+        if cover_field and getattr(cover_field, 'url', None):
+            url = cover_field.url
+            data['cover'] = request.build_absolute_uri(url) if request else url
+        return data
 
 
 class AlbumCreateSerializer(serializers.ModelSerializer):
