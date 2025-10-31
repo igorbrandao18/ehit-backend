@@ -147,8 +147,7 @@ class AlbumAdmin(admin.ModelAdmin):
             if not instance.cover and form.instance.cover:
                 instance.cover = form.instance.cover
             
-            # Não definir duração padrão - deixar o signal calcular
-            # A duração será calculada automaticamente pelo signal após o arquivo ser salvo
+            # Duração pode ser calculada manualmente depois ou deixar em branco
             
             # Salvar a instância com tratamento de erros
             try:
