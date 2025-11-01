@@ -12,7 +12,6 @@ from apps.music.serializers import MusicSerializer
 
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet somente leitura - apenas GET permitido"""
-    queryset = Genre.objects.filter(is_active=True)
     serializer_class = GenreSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
@@ -20,6 +19,16 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     search_fields = ['name', 'description']
     ordering_fields = ['name', 'created_at', 'song_count', 'artist_count']
     ordering = ['name']
+    
+    def get_queryset(self):
+        """Retorna apenas gêneros que têm artistas, álbuns ou músicas relacionados"""
+        queryset = Genre.objects.filter(is_active=True).annotate(
+            artists_count=Count('artists', filter=Q(artists__is_active=True), distinct=True),
+            musics_count=Count('musics', filter=Q(musics__is_active=True), distinct=True)
+        ).filter(
+            Q(artists_count__gt=0) | Q(musics_count__gt=0)
+        )
+        return queryset
     
     def get_serializer_class(self):
         if self.action == 'list':
@@ -34,26 +43,28 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     
     @action(detail=False, methods=['get'])
     def main_genres(self, request):
-        """Retorna apenas os gêneros principais (sem parent)"""
-        main_genres = self.queryset.filter(parent__isnull=True)
+        """Retorna apenas os gêneros principais (sem parent) que têm relacionamentos"""
+        main_genres = self.get_queryset().filter(parent__isnull=True)
         serializer = self.get_serializer(main_genres, many=True)
         return Response(serializer.data)
     
     @action(detail=True, methods=['get'])
     def subgenres(self, request, pk=None):
-        """Retorna os subgêneros de um gênero específico"""
+        """Retorna os subgêneros de um gênero específico (apenas os que têm relacionamentos)"""
         genre = self.get_object()
-        subgenres = genre.subgenres.filter(is_active=True)
+        subgenres = genre.subgenres.filter(is_active=True).annotate(
+            artists_count=Count('artists', filter=Q(artists__is_active=True), distinct=True),
+            musics_count=Count('musics', filter=Q(musics__is_active=True), distinct=True)
+        ).filter(
+            Q(artists_count__gt=0) | Q(musics_count__gt=0)
+        )
         serializer = self.get_serializer(subgenres, many=True)
         return Response(serializer.data)
     
     @action(detail=False, methods=['get'])
     def with_counts(self, request):
-        """Retorna gêneros com contadores de músicas e artistas"""
-        genres = self.queryset.annotate(
-            total_songs=models.Count('musics', distinct=True),
-            total_artists=models.Count('artists', distinct=True)
-        )
+        """Retorna gêneros com contadores de músicas e artistas (apenas os que têm relacionamentos)"""
+        genres = self.get_queryset()
         serializer = self.get_serializer(genres, many=True)
         return Response(serializer.data)
     
