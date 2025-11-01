@@ -20,13 +20,17 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         """Retorna apenas gêneros que têm artistas ou músicas relacionados"""
-        queryset = Genre.objects.filter(is_active=True).annotate(
-            artists_count=Count('artists', filter=Q(artists__is_active=True), distinct=True),
-            musics_count=Count('musics', filter=Q(musics__is_active=True), distinct=True)
-        ).filter(
-            Q(artists_count__gt=0) | Q(musics_count__gt=0)
-        )
-        return queryset
+        # Apenas para listagem - não para detail actions
+        if self.action == 'list':
+            queryset = Genre.objects.filter(is_active=True).annotate(
+                artists_count=Count('artists', filter=Q(artists__is_active=True), distinct=True),
+                musics_count=Count('musics', filter=Q(musics__is_active=True), distinct=True)
+            ).filter(
+                Q(artists_count__gt=0) | Q(musics_count__gt=0)
+            )
+            return queryset
+        # Para detail e actions, retorna queryset completo
+        return Genre.objects.filter(is_active=True)
     
     def get_serializer_context(self):
         """Adiciona request ao contexto para URLs absolutas"""
@@ -41,11 +45,8 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
         
         URL: /api/genres/<id>/artists/
         """
-        # Buscar o gênero diretamente (sem filtro de relacionamentos)
-        try:
-            genre = Genre.objects.get(pk=pk, is_active=True)
-        except Genre.DoesNotExist:
-            raise NotFound('Gênero não encontrado')
+        # get_object() agora funciona porque get_queryset() retorna todos os gêneros ativos para actions
+        genre = self.get_object()
         
         # Buscar artistas do gênero que tenham álbuns ativos
         artists = genre.artists.filter(
