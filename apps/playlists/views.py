@@ -54,8 +54,8 @@ class PlaylistListView(generics.ListAPIView):
         return queryset
 
 
-class PlaylistDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Detalhes da PlayHit"""
+class PlaylistDetailView(generics.RetrieveAPIView):
+    """Detalhes da PlayHit - apenas GET permitido"""
     queryset = Playlist.objects.filter(is_active=True)
     serializer_class = PlaylistDetailSerializer
     permission_classes = [permissions.AllowAny]
