@@ -7,6 +7,6 @@ router.register(r'genres', GenreViewSet, basename='genre')
 
 urlpatterns = [
     path('', include(router.urls)),
-    # Artistas do gênero
-    path('genres/<int:pk>/artists/', genre_artists_view, name='genre-artists'),
+    # Artistas do gênero (sem 'genres' pois já está no include)
+    path('<int:pk>/artists/', genre_artists_view, name='genre-artists'),
 ]
