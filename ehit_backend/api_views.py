@@ -60,6 +60,19 @@ def api_index(request):
                     "all_banners": f"{base_url}banners/all/",
                     "active_banners": f"{base_url}banners/active/"
                 }
+            },
+            "genres": {
+                "url": f"{base_url}genres/",
+                "description": "Gestão de gêneros musicais",
+                "methods": ["GET"],
+                "endpoints": {
+                    "list": f"{base_url}genres/",
+                    "detail": f"{base_url}genres/<id>/",
+                    "complete": {
+                        "url": f"{base_url}genres/<id>/complete/",
+                        "description": "Retorna gênero completo com artistas, álbuns e músicas"
+                    }
+                }
             }
         },
         "query_parameters": {
@@ -81,6 +94,11 @@ def api_index(request):
             "banners": {
                 "ordering": "Ordenação (default: -start_date)",
                 "page_size": "Itens por página (default: 20)"
+            },
+            "genres": {
+                "search": "Buscar por nome ou descrição do gênero",
+                "ordering": "Ordenação (default: name)",
+                "page_size": "Itens por página (default: 20)"
             }
         },
         "examples": {
@@ -95,7 +113,10 @@ def api_index(request):
             "playlist_detail": f"{base_url}playlists/1/",
             "active_banners": f"{base_url}banners/",
             "all_banners": f"{base_url}banners/all/",
-            "banner_detail": f"{base_url}banners/1/"
+            "banner_detail": f"{base_url}banners/1/",
+            "all_genres": f"{base_url}genres/",
+            "genre_detail": f"{base_url}genres/5/",
+            "genre_complete": f"{base_url}genres/5/complete/"
         }
     }
     

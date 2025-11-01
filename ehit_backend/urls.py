@@ -63,11 +63,11 @@ urlpatterns = [
     # APIs - Simplified (only what's used)
     path('api/artists/', include('apps.artists.urls')),
     path('api/playlists/', include('apps.playlists.urls')),
+    path('api/genres/', include('apps.genres.urls')),  # Gêneros API
     path('api/', include('banners.urls')),  # Banners API
     # Commented out - not used
     # path('api/users/', include('apps.users.urls')),
     # path('api/music/', include('apps.music.urls')),
-    # path('api/genres/', include('apps.genres.urls')),
 ]
 
 # Servir arquivos de mídia em desenvolvimento

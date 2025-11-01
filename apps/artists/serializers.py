@@ -77,6 +77,16 @@ class ArtistSerializer(serializers.ModelSerializer):
     def get_albums_count(self, obj):
         """Retorna quantidade de álbuns do artista"""
         return obj.albums.count()
+    
+    def to_representation(self, instance):
+        """Gera URL absoluta para photo (padrão playlists)"""
+        data = super().to_representation(instance)
+        request = self.context.get('request') if hasattr(self, 'context') else None
+        photo_field = getattr(instance, 'photo', None)
+        if photo_field and getattr(photo_field, 'url', None):
+            url = photo_field.url
+            data['photo'] = request.build_absolute_uri(url) if request else url
+        return data
 
 
 class ArtistCreateSerializer(serializers.ModelSerializer):
