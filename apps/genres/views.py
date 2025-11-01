@@ -1,24 +1,20 @@
 from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter, OrderingFilter
-from django.db import models
 from django.db.models import Q, Count
 from .models import Genre
-from .serializers import GenreSerializer, GenreListSerializer
-from apps.artists.serializers import ArtistSerializer, AlbumSerializer
-from apps.music.serializers import MusicSerializer
+from .serializers import GenreListSerializer
+from apps.artists.serializers import AlbumSerializer
 
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet somente leitura - apenas GET permitido"""
     queryset = Genre.objects.all()  # Base queryset necessário para o router
-    serializer_class = GenreSerializer
+    serializer_class = GenreListSerializer
     permission_classes = [permissions.AllowAny]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = ['parent', 'is_active']
-    search_fields = ['name', 'description']
-    ordering_fields = ['name', 'created_at', 'song_count', 'artist_count']
+    filter_backends = [SearchFilter, OrderingFilter]
+    search_fields = ['name']
+    ordering_fields = ['name', 'created_at']
     ordering = ['name']
     
     def get_queryset(self):
@@ -31,64 +27,20 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
         )
         return queryset
     
-    def get_serializer_class(self):
-        if self.action == 'list':
-            return GenreListSerializer
-        return GenreSerializer
-    
     def get_serializer_context(self):
         """Adiciona request ao contexto para URLs absolutas"""
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
     
-    @action(detail=False, methods=['get'])
-    def main_genres(self, request):
-        """Retorna apenas os gêneros principais (sem parent) que têm relacionamentos"""
-        main_genres = self.get_queryset().filter(parent__isnull=True)
-        serializer = self.get_serializer(main_genres, many=True)
-        return Response(serializer.data)
-    
     @action(detail=True, methods=['get'])
-    def subgenres(self, request, pk=None):
-        """Retorna os subgêneros de um gênero específico (apenas os que têm relacionamentos)"""
-        genre = self.get_object()
-        subgenres = genre.subgenres.filter(is_active=True).annotate(
-            artists_count=Count('artists', filter=Q(artists__is_active=True), distinct=True),
-            musics_count=Count('musics', filter=Q(musics__is_active=True), distinct=True)
-        ).filter(
-            Q(artists_count__gt=0) | Q(musics_count__gt=0)
-        )
-        serializer = self.get_serializer(subgenres, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=False, methods=['get'])
-    def with_counts(self, request):
-        """Retorna gêneros com contadores de músicas e artistas (apenas os que têm relacionamentos)"""
-        genres = self.get_queryset()
-        serializer = self.get_serializer(genres, many=True)
-        return Response(serializer.data)
-    
-    @action(detail=True, methods=['get'])
-    def complete(self, request, pk=None):
+    def albums(self, request, pk=None):
         """
-        Retorna gênero completo com artistas, álbuns e músicas
+        Retorna álbuns relacionados ao gênero
         
-        URL: /api/genres/<id>/complete/
+        URL: /api/genres/<id>/albums/
         """
         genre = self.get_object()
-        
-        # Serializar gênero
-        genre_serializer = GenreSerializer(genre, context={'request': request})
-        
-        # Buscar artistas do gênero que tenham álbuns ativos
-        artists = genre.artists.filter(
-            is_active=True
-        ).annotate(
-            albums_count=Count('albums', filter=Q(albums__is_active=True))
-        ).filter(albums_count__gt=0)
-        
-        artists_serializer = ArtistSerializer(artists, many=True, context={'request': request})
         
         # Buscar álbuns dos artistas deste gênero
         from apps.artists.models import Album
@@ -101,18 +53,14 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
         
         albums_serializer = AlbumSerializer(albums, many=True, context={'request': request})
         
-        # Buscar músicas do gênero
-        musics = genre.musics.filter(is_active=True).order_by('-streams_count', '-created_at')
-        musics_serializer = MusicSerializer(musics, many=True, context={'request': request})
-        
         response_data = {
-            'genre': genre_serializer.data,
-            'artists': artists_serializer.data,
+            'genre': {
+                'id': genre.id,
+                'name': genre.name,
+                'slug': genre.slug,
+            },
             'albums': albums_serializer.data,
-            'musics': musics_serializer.data,
-            'artists_count': artists.count(),
-            'albums_count': albums.count(),
-            'musics_count': musics.count()
+            'count': albums.count()
         }
         
         return Response(response_data)
