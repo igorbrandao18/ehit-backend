@@ -6,7 +6,7 @@ router = DefaultRouter()
 router.register(r'genres', GenreViewSet, basename='genre')
 
 urlpatterns = [
-    path('', include(router.urls)),
-    # Artistas do gênero (sem 'genres' pois já está no include)
+    # Artistas do gênero (deve vir ANTES do router para evitar conflito)
     path('<int:pk>/artists/', genre_artists_view, name='genre-artists'),
+    path('', include(router.urls)),
 ]
