@@ -40,7 +40,13 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
         
         URL: /api/genres/<id>/albums/
         """
-        genre = self.get_object()
+        # Buscar o gênero diretamente (sem filtro de relacionamentos)
+        # para permitir acesso mesmo se não tiver relacionamentos
+        try:
+            genre = Genre.objects.get(pk=pk, is_active=True)
+        except Genre.DoesNotExist:
+            from rest_framework.exceptions import NotFound
+            raise NotFound('Gênero não encontrado')
         
         # Buscar álbuns dos artistas deste gênero
         from apps.artists.models import Album
