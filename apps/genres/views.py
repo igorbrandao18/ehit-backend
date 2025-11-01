@@ -12,6 +12,7 @@ from apps.music.serializers import MusicSerializer
 
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet somente leitura - apenas GET permitido"""
+    queryset = Genre.objects.all()  # Base queryset necessário para o router
     serializer_class = GenreSerializer
     permission_classes = [permissions.AllowAny]
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
