@@ -49,8 +49,8 @@ class ArtistListView(generics.ListAPIView):
         return queryset
 
 
-class ArtistDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Detalhes do artista com cache Redis"""
+class ArtistDetailView(generics.RetrieveAPIView):
+    """Detalhes do artista - apenas GET permitido"""
     queryset = Artist.objects.filter(is_active=True)
     serializer_class = ArtistSerializer
     permission_classes = [permissions.AllowAny]

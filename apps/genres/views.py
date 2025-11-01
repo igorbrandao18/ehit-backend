@@ -10,7 +10,8 @@ from .serializers import GenreSerializer, GenreListSerializer
 from apps.artists.serializers import ArtistSerializer, AlbumSerializer
 from apps.music.serializers import MusicSerializer
 
-class GenreViewSet(viewsets.ModelViewSet):
+class GenreViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet somente leitura - apenas GET permitido"""
     queryset = Genre.objects.filter(is_active=True)
     serializer_class = GenreSerializer
     permission_classes = [permissions.AllowAny]
