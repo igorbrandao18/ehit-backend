@@ -66,11 +66,17 @@ def api_index(request):
                 "description": "Gestão de gêneros musicais",
                 "methods": ["GET"],
                 "endpoints": {
-                    "list": f"{base_url}genres/",
-                    "detail": f"{base_url}genres/<id>/",
+                    "list": {
+                        "url": f"{base_url}genres/",
+                        "description": "Lista todos os gêneros ativos"
+                    },
+                    "detail": {
+                        "url": f"{base_url}genres/<id>/",
+                        "description": "Detalhes de um gênero específico"
+                    },
                     "complete": {
                         "url": f"{base_url}genres/<id>/complete/",
-                        "description": "Retorna gênero completo com artistas, álbuns e músicas"
+                        "description": "Retorna gênero completo com artistas (que tenham álbuns), álbuns (que tenham músicas) e todas as músicas do gênero. Inclui contadores."
                     }
                 }
             }
@@ -102,21 +108,30 @@ def api_index(request):
             }
         },
         "examples": {
-            "all_artists": f"{base_url}artists/",
-            "artist_detail": f"{base_url}artists/5/",
-            "álbuns_do_artista": f"{base_url}artists/5/albums/",
-            "álbuns_em_destaque_do_artista": f"{base_url}artists/5/albums/?featured=true",
-            "buscar_álbuns_do_artista": f"{base_url}artists/5/albums/?search=rock",
-            "músicas_do_álbum": f"{base_url}artists/albums/1/musics/",
-            "all_playlists": f"{base_url}playlists/",
-            "featured_playlists": f"{base_url}playlists/?featured=true",
-            "playlist_detail": f"{base_url}playlists/1/",
-            "active_banners": f"{base_url}banners/",
-            "all_banners": f"{base_url}banners/all/",
-            "banner_detail": f"{base_url}banners/1/",
-            "all_genres": f"{base_url}genres/",
-            "genre_detail": f"{base_url}genres/5/",
-            "genre_complete": f"{base_url}genres/5/complete/"
+            "artists": {
+                "all_artists": f"{base_url}artists/",
+                "artist_detail": f"{base_url}artists/5/",
+                "álbuns_do_artista": f"{base_url}artists/5/albums/",
+                "álbuns_em_destaque_do_artista": f"{base_url}artists/5/albums/?featured=true",
+                "buscar_álbuns_do_artista": f"{base_url}artists/5/albums/?search=rock",
+                "músicas_do_álbum": f"{base_url}artists/albums/1/musics/"
+            },
+            "playlists": {
+                "all_playlists": f"{base_url}playlists/",
+                "featured_playlists": f"{base_url}playlists/?featured=true",
+                "playlist_detail": f"{base_url}playlists/1/"
+            },
+            "banners": {
+                "active_banners": f"{base_url}banners/",
+                "all_banners": f"{base_url}banners/all/",
+                "banner_detail": f"{base_url}banners/1/"
+            },
+            "genres": {
+                "all_genres": f"{base_url}genres/",
+                "genre_detail": f"{base_url}genres/5/",
+                "genre_complete": f"{base_url}genres/5/complete/",
+                "buscar_gêneros": f"{base_url}genres/?search=sertanejo"
+            }
         }
     }
     
