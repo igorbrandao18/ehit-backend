@@ -2,10 +2,11 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.filters import SearchFilter, OrderingFilter
+from rest_framework.exceptions import NotFound
 from django.db.models import Q, Count
 from .models import Genre
 from .serializers import GenreListSerializer
-from apps.artists.serializers import AlbumSerializer
+from apps.artists.serializers import ArtistSerializer
 
 class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     """ViewSet somente leitura - apenas GET permitido"""
@@ -18,7 +19,7 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
     ordering = ['name']
     
     def get_queryset(self):
-        """Retorna apenas gêneros que têm artistas, álbuns ou músicas relacionados"""
+        """Retorna apenas gêneros que têm artistas ou músicas relacionados"""
         queryset = Genre.objects.filter(is_active=True).annotate(
             artists_count=Count('artists', filter=Q(artists__is_active=True), distinct=True),
             musics_count=Count('musics', filter=Q(musics__is_active=True), distinct=True)
@@ -34,30 +35,26 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
         return context
     
     @action(detail=True, methods=['get'])
-    def albums(self, request, pk=None):
+    def artists(self, request, pk=None):
         """
-        Retorna álbuns relacionados ao gênero
+        Retorna todos os artistas relacionados ao gênero
         
-        URL: /api/genres/<id>/albums/
+        URL: /api/genres/<id>/artists/
         """
         # Buscar o gênero diretamente (sem filtro de relacionamentos)
-        # para permitir acesso mesmo se não tiver relacionamentos
         try:
             genre = Genre.objects.get(pk=pk, is_active=True)
         except Genre.DoesNotExist:
-            from rest_framework.exceptions import NotFound
             raise NotFound('Gênero não encontrado')
         
-        # Buscar álbuns dos artistas deste gênero
-        from apps.artists.models import Album
-        albums = Album.objects.filter(
-            artist__genre=genre,
+        # Buscar artistas do gênero que tenham álbuns ativos
+        artists = genre.artists.filter(
             is_active=True
         ).annotate(
-            musics_count=Count('musics', filter=Q(musics__is_active=True))
-        ).filter(musics_count__gt=0).order_by('-featured', '-release_date', '-created_at')
+            albums_count=Count('albums', filter=Q(albums__is_active=True))
+        ).filter(albums_count__gt=0).order_by('-created_at')
         
-        albums_serializer = AlbumSerializer(albums, many=True, context={'request': request})
+        artists_serializer = ArtistSerializer(artists, many=True, context={'request': request})
         
         response_data = {
             'genre': {
@@ -65,8 +62,8 @@ class GenreViewSet(viewsets.ReadOnlyModelViewSet):
                 'name': genre.name,
                 'slug': genre.slug,
             },
-            'albums': albums_serializer.data,
-            'count': albums.count()
+            'artists': artists_serializer.data,
+            'count': artists.count()
         }
         
         return Response(response_data)

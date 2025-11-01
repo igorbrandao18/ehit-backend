@@ -70,9 +70,9 @@ def api_index(request):
                         "url": f"{base_url}genres/",
                         "description": "Lista todos os gêneros que têm artistas ou músicas relacionados"
                     },
-                    "albums": {
-                        "url": f"{base_url}genres/<id>/albums/",
-                        "description": "Retorna todos os álbuns relacionados ao gênero (com músicas incluídas em cada álbum)"
+                    "artists": {
+                        "url": f"{base_url}genres/<id>/artists/",
+                        "description": "Retorna todos os artistas relacionados ao gênero"
                     }
                 }
             }
@@ -124,7 +124,7 @@ def api_index(request):
             },
             "genres": {
                 "all_genres": f"{base_url}genres/",
-                "albums_do_gênero": f"{base_url}genres/5/albums/",
+                "artistas_do_gênero": f"{base_url}genres/5/artists/",
                 "buscar_gêneros": f"{base_url}genres/?search=sertanejo"
             }
         }
